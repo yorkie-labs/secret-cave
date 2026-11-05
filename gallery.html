@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Character Gallery</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #2a1d38; color: #fff7ea; font-family: system-ui, sans-serif; }
+      #bar { position: fixed; left: 12px; top: 12px; display: flex; gap: 6px; flex-wrap: wrap; }
+      button { border: 0; border-radius: 999px; padding: 6px 12px; background: #fff7ea; color: #2a1d38; font-weight: 600; cursor: pointer; }
+      button.on { background: #ef740b; color: #fff; }
+    </style>
+  </head>
+  <body>
+    <div id="bar"></div>
+    <script type="module" src="/src/tools/gallery.js"></script>
+  </body>
+</html>

@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.DS_Store
+# Polyfork downloads: run `npm run fetch-assets` (licensed for use in the game,
+# not for redistribution as raw assets; production loads them from the Polyfork CDN)
+public/assets/polyfork/
+src/vendor/polyfork/
+
+# Claude Code runtime state
+.claude/scheduled_tasks.lock
+.claude/settings.local.json

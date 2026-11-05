@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>Secret Cave · 비밀 동굴</title>
+    <meta name="description" content="Secret Cave — 용감한 몰티즈가 신비한 동굴에서 아이템을 모아 싸우고, 크리스탈 킹을 물리치고 탈출하는 3D 액션 로그라이크." />
+    <meta name="theme-color" content="#1b2226" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <!-- link previews (KakaoTalk, messengers, social): og.jpg is a title card from the camp, public/og.jpg -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Secret Cave · 비밀 동굴" />
+    <meta property="og:title" content="비밀 동굴 · Secret Cave" />
+    <meta property="og:description" content="용감한 몰티즈가 신비한 지하 세계에서 아이템을 모아 싸우고, 크리스탈 킹을 물리치고 탈출하는 아이들을 위한 3D 액션 게임. 브라우저에서 바로 해요." />
+    <meta property="og:url" content="https://yorkie-labs.github.io/secret-cave/" />
+    <meta property="og:image" content="https://yorkie-labs.github.io/secret-cave/og.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="캠프의 샘 옆에 선 몰티즈와 '비밀 동굴 · Secret Cave' 제목" />
+    <meta property="og:locale" content="ko_KR" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="비밀 동굴 · Secret Cave" />
+    <meta name="twitter:description" content="용감한 몰티즈의 지하 세계 대모험. 아이들을 위한 3D 액션 게임, 브라우저에서 바로 해요." />
+    <meta name="twitter:image" content="https://yorkie-labs.github.io/secret-cave/og.jpg" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <noscript><p style="padding:24px;font-size:20px">이 게임은 JavaScript가 필요해요. 브라우저 설정에서 켜 주세요.</p></noscript>
+    <div id="app"></div>
+
+    <!-- HUD (GDD §5.2) -->
+    <div id="hud" class="hidden">
+      <div id="area-name"></div>
+      <!-- Diablo II style interface bar: heart orb, skills, hotbar, water orb -->
+      <div id="bar">
+        <div id="bar-row">
+          <div class="orb heart" id="heart-orb" title="하트"><div class="fill"></div><div class="segs"><i></i><i></i><i></i><i></i></div><span class="glyph">❤️</span><span class="num" id="heart-num"></span><div class="armor hidden" id="armor-pips" title="갑옷: 파란 하트"></div></div>
+          <div id="shards" title="수정 조각"><span class="gem"></span><b id="shard-num">0</b></div>
+          <div class="skill" id="skill-left" data-key="Hammer"><span></span><small>L</small></div>
+          <div class="skill" id="skill-right" data-key="Tool"><span></span><small>R</small><i class="cd"></i></div>
+          <div id="tool-others" class="hidden"></div>
+          <div id="slots"></div>
+          <div class="orb water" id="water-orb" title="물통"><div class="fill"></div><span class="glyph">💧</span></div>
+        </div>
+      </div>
+      <div id="prompt" class="hidden"></div>
+      <div id="help-hint">1 냄새 · 2 구르기 · 3 방패 · 4 약초 · Q 도구 · Esc 메뉴</div>
+      <div id="hover-plate" class="hidden"></div>
+      <!-- M5: the boss's plate (GDD §3.3, §5.2): name, hp, stun gauge, hint -->
+      <div id="boss-plate" class="hidden">
+        <b id="boss-name"></b>
+        <div class="bar hp"><span></span><i style="left:66%"></i><i style="left:33%"></i></div>
+        <div class="bar stun" title="기절 게이지"><span></span></div>
+        <small id="boss-hint"></small>
+      </div>
+      <div id="necklace-badge" class="hidden" title="황금 목걸이: 수정 문을 열어요">🏅</div>
+      <!-- the minimap (the cave seen so far, the hero in the middle; Tab: the big map) -->
+      <canvas id="minimap" width="300" height="300" title="Tab: 지도"></canvas>
+    </div>
+
+    <div id="hover-tip" class="hidden"></div>
+    <div id="toast"></div>
+    <div id="combo-pop"></div>
+    <div id="dialog" class="hidden"><div id="dialog-name"></div><div id="dialog-text"></div><div id="dialog-next">▼ Space / 클릭</div></div>
+    <div id="fade"></div>
+    <!-- M6a: green at the edges while the hero stands in poison -->
+    <div id="poison-tint"></div>
+    <div id="card" class="hidden"></div>
+
+    <div id="title" class="screen">
+      <p class="kicker">비밀 동굴</p>
+      <h1>SECRET CAVE</h1>
+      <p class="tagline">용감한 몰티즈의 신비로운 모험 · One brave puppy. One way out.</p>
+      <div id="title-buttons">
+        <button id="btn-new">새 게임</button>
+      </div>
+      <p id="title-save" class="hidden"></p>
+      <!-- release: the browser blocks storage (Safari "block all cookies", in-app browsers) -->
+      <p id="title-note" class="hidden">🔒 이 브라우저가 저장을 막고 있어요. 놀 수는 있지만, 창을 닫으면 진행이 사라져요.</p>
+      <p id="loading-text">동굴을 불러오는 중…</p>
+      <div id="loading-bar" class="hidden"><i></i></div>
+      <p id="loading-slow" class="hidden">인터넷이 조금 느린가 봐요. 동굴을 계속 불러오고 있으니 조금만 기다려 주세요…</p>
+    </div>
+
+    <div id="result" class="screen hidden">
+      <h2 id="result-title">몰티즈가 지쳐서 잠들었어요…</h2>
+      <p id="result-sub"></p>
+      <div id="result-stats"></div>
+      <div id="result-found"><h3>새로 발견한 것</h3><div id="result-chips"></div></div>
+      <p id="result-note"></p>
+      <div class="row"><button id="btn-continue" class="hidden">계속 탐험하기</button><button id="btn-again">다시 하기</button><button id="btn-same">같은 동굴 다시</button><button id="btn-title">처음 화면</button></div>
+    </div>
+
+    <!-- the intro (GDD §2.1): a 3D cutscene in the game's renderer (ui/intro.js):
+         letterbox bars, the subtitle under the picture, 건너뛰기 -->
+    <div id="intro" class="hidden">
+      <div id="intro-black"></div>
+      <div class="bar top"><button id="intro-skip" aria-label="인트로 건너뛰기">건너뛰기 ▶▶</button></div>
+      <div class="bar bottom"><p id="intro-line" class="gone"></p><span class="hint">클릭 · Space: 다음 · Esc: 건너뛰기</span></div>
+      <div class="dots"><i></i><i></i><i></i></div>
+    </div>
+
+    <!-- M5: the ending (GDD §2.3, §15) -->
+    <div id="ending" class="screen hidden">
+      <div id="ending-sun">☀️</div>
+      <h2>멍멍! 드디어 탈출했다!</h2>
+      <p class="line">몰티즈는 거대한 동굴을 한 번 돌아보고, 새로운 모험을 찾아 떠나요.</p>
+      <p id="ending-time"></p>
+      <p id="ending-star" class="hidden">⭐ 거대 토끼 대장을 처음 물리쳤어요! 별 하나를 얻었어요</p>
+      <h1>THE END</h1>
+      <p class="soon">다음 동굴은 곧 열려요</p>
+      <div id="ending-credits"></div>
+      <p class="shard">…동굴 안쪽 깊은 곳에서, 작은 보라색 조각 하나가 반짝였어요. <i>✦</i></p>
+      <button id="btn-ending">결과 보기</button>
+    </div>
+
+    <!-- Tab: the cave map (what the hero has seen of the cave, the caverns visited, the fork signs) -->
+    <div id="map" class="hidden"><h3 id="map-title"></h3><canvas id="map-canvas"></canvas><p class="hint">Tab 닫기</p></div>
+
+    <!-- M6a: the bat merchant's shop (GDD §7.3) -->
+    <div id="shop" class="hidden">
+      <div id="shop-head"><span class="bat">🦇</span><div><b>박쥐 상인</b><p id="shop-say"></p></div><span id="shop-shards"></span></div>
+      <div id="shop-goods"></div>
+      <div class="row"><button id="shop-close">그만 보기 (Esc)</button></div>
+    </div>
+
+    <!-- W1/W5: the codex book at the camp's codex stone (GDD §8.4) -->
+    <div id="codex" class="hidden">
+      <div id="codex-head"><span class="book">📖</span><div><b>도감</b><p>지금까지 만난 것들이에요. <span id="codex-count"></span></p><div id="codex-progress"><div id="codex-bar"></div></div></div><div id="codex-stars"></div></div>
+      <div id="codex-tabs"></div>
+      <div id="codex-body"><div id="codex-grid"></div><div id="codex-detail"></div></div>
+      <div class="row"><button id="codex-close">닫기 (Esc)</button></div>
+    </div>
+
+    <!-- W5: the star altar at the camp (GDD §8.3) -->
+    <div id="altar" class="hidden">
+      <div id="altar-head"><span class="star">⭐</span><div><b>별 제단</b><p id="altar-say">별로 영원히 남는 힘을 열어요.</p></div><span id="altar-stars"></span></div>
+      <div id="altar-goods"></div>
+      <div class="row"><button id="altar-close">닫기 (Esc)</button></div>
+    </div>
+
+    <div id="menu" class="screen hidden">
+      <h2 id="menu-title">잠깐 쉬어요</h2>
+      <div id="menu-stars"></div>
+      <div id="menu-controls"></div>
+      <div id="menu-volume">
+        <label>🎵 음악 <input type="range" id="vol-music" min="0" max="100" step="5"></label>
+        <label>🔔 효과음 <input type="range" id="vol-sfx" min="0" max="100" step="5"></label>
+      </div>
+      <div class="row">
+        <button id="btn-resume">계속하기</button>
+        <button id="btn-mute">소리 끄기</button>
+        <button id="btn-quality" title="낮음: 그림자 효과와 빛 번짐을 줄여 휴대폰에서 부드럽게">화질: 높음</button>
+        <button id="btn-intro">이야기 보기</button>
+        <button id="btn-restart">처음부터</button>
+      </div>
+    </div>
+
+    <div id="touch" class="hidden">
+      <div id="stick"><div id="knob"></div></div>
+      <div id="touch-buttons">
+        <button data-key="Hammer" title="망치"><span class="ico">🔨</span><small class="lbl">망치</small></button>
+        <button data-key="Tool" title="도구"><span class="ico">💧</span><small class="lbl">도구</small></button>
+        <button data-key="KeyQ" title="도구 바꾸기"><span class="ico">🔄</span><small class="lbl">바꾸기</small></button>
+        <button data-key="Digit2" title="구르기"><span class="ico">🌀</span><small class="lbl">구르기</small></button>
+        <button data-key="Digit3" title="방패"><span class="ico">🛡️</span><small class="lbl">방패</small></button>
+        <button data-key="Digit4" title="약초"><span class="ico">🌱</span><small class="lbl">약초</small></button>
+        <button data-key="Digit1" title="냄새"><span class="ico">👃</span><small class="lbl">냄새</small></button>
+        <button data-key="Space" title="사용"><span class="ico">✋</span><small class="lbl">사용</small></button>
+        <button data-key="Tab" title="지도"><span class="ico">🗺️</span><small class="lbl">지도</small></button>
+        <button data-key="Escape" title="메뉴"><span class="ico">☰</span><small class="lbl">메뉴</small></button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
