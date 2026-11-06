@@ -12,12 +12,16 @@ const url = process.env.GAME_URL ?? 'http://localhost:5191/';
 const gallery = url.includes('gallery');
 // SIZE=1600x900: another window size (the default 1100×800), e.g. to check 16:9
 const [vw, vh] = (process.env.SIZE ?? '1100x800').split('x').map(Number);
+// DPR=2: a Retina screen (device pixels = 2 × css); UNCAPPED=1: no vsync and no
+// 60 fps cap, so a frame's real cost shows in the fps (perf checks)
+const dpr = Number(process.env.DPR ?? 1);
+const uncap = process.env.UNCAPPED ? ['--disable-gpu-vsync', '--disable-frame-rate-limit'] : [];
 const browser = await puppeteer.launch({
   executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
   headless: 'new',
   protocolTimeout: 3600000, // (W3: the whole-game run takes ~20 min real)
-  args: ['--use-angle=metal', '--enable-unsafe-swiftshader', `--window-size=${vw},${vh}`, '--autoplay-policy=no-user-gesture-required'],
-  defaultViewport: { width: vw, height: vh },
+  args: ['--use-angle=metal', '--enable-unsafe-swiftshader', `--window-size=${vw},${vh}`, '--autoplay-policy=no-user-gesture-required', ...uncap],
+  defaultViewport: { width: vw, height: vh, deviceScaleFactor: dpr },
 });
 const page = await browser.newPage();
 // MOBILE=1: an upright phone (touch, coarse pointer); MOBILE=landscape: lying down

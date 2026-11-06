@@ -241,8 +241,9 @@ describe('the light rig on Three lights (render/light.js)', () => {
 
 describe('the quality switch and the grade (render/post.js)', async () => {
   const { GRADE, qualityFromUrl } = await import('../src/render/post.js');
-  it('`?q=low` is the low path, anything else high', () => {
+  it('`?q=low` / `?q=medium` are those paths, anything else high', () => {
     expect(qualityFromUrl('?q=low')).toBe('low');
+    expect(qualityFromUrl('?q=medium')).toBe('medium');
     expect(qualityFromUrl('?start=heart&q=low&seed=4')).toBe('low');
     expect(qualityFromUrl('')).toBe('high');
     expect(qualityFromUrl('?q=high')).toBe('high');

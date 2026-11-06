@@ -13,6 +13,7 @@
 // crystals, mushrooms and the hero's glow their colour pools.
 import * as THREE from 'three';
 import { TO_KEY, shadowBounds, snapToTexel, viewDrop, viewGroundCorners } from './shadowbox.js';
+import { PRESETS } from './quality.js';
 
 /** The rig's colours and strengths (×, on stage's night rig and main.js's cave multipliers). */
 export const CAVE_RIG = {
@@ -44,8 +45,8 @@ export function caveLight(look, { quality = 'high' } = {}) {
   hemi.color.multiplyScalar(sky0 / lum(hemi.color));
   key.color.multiplyScalar(key0 / lum(key.color));
   let mapSize = 0;
-  const setQuality = (q) => {
-    const size = q === 'low' ? 1024 : 2048;
+  // the shadow map's texels a side (render/quality.js `shadowMap`)
+  const setMapSize = (size) => {
     if (size === mapSize) return;
     mapSize = size;
     key.shadow.mapSize.set(mapSize, mapSize);
@@ -53,6 +54,9 @@ export function caveLight(look, { quality = 'high' } = {}) {
     out.mapSize = mapSize;
     Object.assign(box, { left: 0, right: 0, bottom: 0, top: 0 }); // (the bias is set again for the new texels)
   };
+  const setQuality = (q) => setMapSize((PRESETS[q] ?? PRESETS.high).shadowMap);
+  // the ?perf=1 overlay's switch: no shadow map drawn at all (the key still lights)
+  const setShadows = (on) => { key.castShadow = !!on; };
   key.shadow.intensity = CAVE_RIG.shadow;
   key.shadow.bias = 0;
   key.shadow.radius = 3;
@@ -61,12 +65,22 @@ export function caveLight(look, { quality = 'high' } = {}) {
   const toKey = new THREE.Vector3(TO_KEY.x, TO_KEY.y, TO_KEY.z);
   const center = new THREE.Vector3();
   const box = { left: 0, right: 0, bottom: 0, top: 0 };
+  let last = null, lastDrop = 0.6;
   const out = {
-    box, toKey, mapSize, setQuality,
+    box, toKey, mapSize, setQuality, setMapSize, setShadows,
     update(feet, view, heightAt = null) {
       const focus = { x: feet.x, y: feet.y + 0.6, z: feet.z };
-      // (the drop is measured from the focus, 0.6 m over the feet: the feet's own level at least)
-      const drop = Math.max(0.6, heightAt ? viewDrop(view, focus, heightAt, { max: MAX_DROP }) : 0);
+      // (the drop is measured from the focus, 0.6 m over the feet: the feet's
+      // own level at least. Perf pass, after scary-island: the search marches
+      // the view's corner rays over the ground, hundreds of lookups, so it
+      // runs again only once the lens has moved a metre, zoomed or turned)
+      const moved = !last || Math.hypot(focus.x - last.x, focus.y - last.y, focus.z - last.z) > 1 || heightAt !== last.heightAt
+        || Math.abs(view.dist - last.dist) > 0.5 || Math.abs(view.pitch - last.pitch) > 0.01 || Math.abs(view.yaw - last.yaw) > 0.01 || view.aspect !== last.aspect;
+      if (moved) {
+        last = { ...focus, dist: view.dist, pitch: view.pitch, yaw: view.yaw, aspect: view.aspect, heightAt };
+        lastDrop = Math.max(0.6, heightAt ? viewDrop(view, focus, heightAt, { max: MAX_DROP }) : 0);
+      }
+      const drop = lastDrop;
       // the view's ground corners, from the feet (the box's centre)
       const need = shadowBounds(viewGroundCorners(view, drop).map((c) => ({ x: c.x, y: c.y + 0.6, z: c.z })), TO_KEY);
       // each side grows at once and shrinks only when well inside (a lip

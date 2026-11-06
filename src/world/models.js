@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
 
@@ -199,7 +200,7 @@ function pump() {
     next.state = 'loading';
     active++;
     fetchModel(next.id).then((gltf) => {
-      sources.set(next.id, gltf.scene);
+      sources.set(next.id, bake(gltf.scene));
       animations.set(next.id, gltf.animations ?? []);
       next.state = 'done';
     }, (err) => {
@@ -372,6 +373,64 @@ function placeholder(key) {
 export function whenReady(obj, fn) {
   if (obj.userData.pendingModel) obj.userData.onReady.push(fn);
   else fn(obj);
+}
+
+// Perf pass (tasks/20261107-perf-todo.md, after scary-island's): a model
+// as one mesh per material, its parts' transforms baked in, so each copy in
+// the world is a handful of objects, not dozens (a moss boulder with its
+// fern fronds was ~27 nodes and 13 draws, ×2–3 with the shadow and AO
+// passes), and three.js walks every node every frame. Rigged models are
+// left as they are (their bones move the parts; only theirs have clips the
+// game plays, clipsOf — a prop's own little clips, a moss tuft's sway, were
+// never played); parts with several materials stay apart. Materials are
+// kept (their names too: scatter.js finds a mushroom's glowing cap by them).
+export function bake(src) {
+  let skinned = false;
+  src.traverse((o) => { if (o.isSkinnedMesh || o.isBone) skinned = true; });
+  if (skinned) return src;
+  src.updateMatrixWorld(true);
+  const toRoot = src.matrixWorld.clone().invert();
+  const byMat = new Map(), loose = [];
+  src.traverse((o) => {
+    if (!o.isMesh) return;
+    if (Array.isArray(o.material) || o.isInstancedMesh) { loose.push(o); return; }
+    if (!byMat.has(o.material)) byMat.set(o.material, []);
+    byMat.get(o.material).push(o);
+  });
+  const out = new THREE.Group();
+  out.name = src.name;
+  out.userData = { ...src.userData };
+  const m = new THREE.Matrix4();
+  const merge = (meshes) => {
+    const names = meshes.map((o) => new Set(Object.keys(o.geometry.attributes)));
+    const keep = [...names[0]].filter((k) => names.every((n) => n.has(k)));
+    const indexed = meshes.every((o) => o.geometry.index);
+    const geos = meshes.map((o) => {
+      let g = o.geometry.clone();
+      for (const k of Object.keys(g.attributes)) if (!keep.includes(k)) g.deleteAttribute(k);
+      for (const k of Object.keys(g.morphAttributes)) delete g.morphAttributes[k];
+      if (!indexed && g.index) g = g.toNonIndexed();
+      g.clearGroups();
+      return g.applyMatrix4(m.multiplyMatrices(toRoot, o.matrixWorld));
+    });
+    return geos.length === 1 ? geos[0] : mergeGeometries(geos, false);
+  };
+  const add = (mesh, from) => {
+    mesh.name = from.name;
+    mesh.castShadow = from.castShadow; mesh.receiveShadow = from.receiveShadow;
+    mesh.matrixAutoUpdate = false; // (it sits at its model's origin for good: no matrix to compose each frame)
+    out.add(mesh);
+  };
+  for (const [material, meshes] of byMat) {
+    const geo = merge(meshes);
+    if (!geo) { loose.push(...meshes); continue; } // (parts that would not merge: kept apart)
+    add(new THREE.Mesh(geo, material), meshes.length === 1 ? meshes[0] : { name: material.name, castShadow: meshes[0].castShadow, receiveShadow: meshes[0].receiveShadow });
+  }
+  for (const o of loose) {
+    if (o.isInstancedMesh) { const c = o.clone(); c.applyMatrix4(m.multiplyMatrices(toRoot, o.parent.matrixWorld)); out.add(c); continue; }
+    add(new THREE.Mesh(o.geometry.clone().applyMatrix4(m.multiplyMatrices(toRoot, o.matrixWorld)), o.material), o);
+  }
+  return out;
 }
 
 function cloneOf(id) {

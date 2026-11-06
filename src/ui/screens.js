@@ -3,6 +3,7 @@ import { ITEMS } from '../data/items.js';
 import { ENEMIES } from '../data/enemies.js';
 import { BOSSES } from '../data/bosses.js';
 import { CODEX_IDS } from '../data/codex.js';
+import { LABEL } from '../render/quality.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -17,6 +18,8 @@ export const TOUCH_CONTROLS_HTML = `
   💧 도구 · 🔄 도구 바꾸기 · 🌀 구르기 · 🛡️ 방패 · 🌱 약초 · 👃 냄새<br>
   ✋ 가까운 것 사용 · 🗺️ 지도 · ☰ 메뉴 · 대화는 화면을 톡<br>
   🌱 약초를 먹는 동안 🌱를 한 번 더: 약초 두 개로 하트 5칸`;
+
+const NEXT_LEVEL = { high: 'medium', medium: 'low', low: 'high' };
 
 export function createScreens(G, { onRestart, onTitle }) {
   const screens = G.screens = {
@@ -121,10 +124,11 @@ export function createScreens(G, { onRestart, onTitle }) {
   $('vol-music').oninput = (e) => setVolume('music', Number(e.target.value) / 100);
   $('vol-sfx').oninput = (e) => { setVolume('sfx', Number(e.target.value) / 100); sfx.click(); };
   $('btn-mute').onclick = () => { setMuted(!isMuted()); $('btn-mute').textContent = isMuted() ? '소리 켜기' : '소리 끄기'; };
-  // release: 화질 높음 (AO, bloom, a big shadow map) / 낮음 (phones start
-  // there), switched live and kept in this browser (main.js G.setQuality)
-  const qualityLabel = () => `화질: ${G.quality === 'low' ? '낮음' : '높음'}`;
-  $('btn-quality').onclick = () => { G.setQuality?.(G.quality === 'low' ? 'high' : 'low'); $('btn-quality').textContent = qualityLabel(); sfx.click(); };
+  // 화질 높음 → 중간 → 낮음 (render/quality.js; phones start low, a slow
+  // machine may have stepped itself down), switched live and kept in this
+  // browser as the player's own pick (main.js G.setQuality)
+  const qualityLabel = () => `화질: ${LABEL[G.quality] ?? LABEL.high}`;
+  $('btn-quality').onclick = () => { G.setQuality?.(NEXT_LEVEL[G.quality] ?? 'high'); $('btn-quality').textContent = qualityLabel(); sfx.click(); };
   // a new run: ask with a second press (no native dialog). The save (codex,
   // stars, unlocks) is kept; only this run is thrown away.
   let restartArmed = -Infinity; // performance.now() starts at 0 with the page

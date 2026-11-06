@@ -1,10 +1,10 @@
 // K1 (tasks/20261105-cozy-look-todo.md): the cave's post-processing (pmndrs
 // postprocessing + N8AO), ported from wild-island's post.ts:
-//   high: render (4× MSAA) → N8AO contact shadows (half res, cool blue) →
-//         one effect pass: bloom (only what glows: crystals, glowing
-//         mushrooms, fireflies, light shafts, the hero's ring), the colour
-//         grade, a vignette;
-//   low (`?q=low`): render (4× MSAA) → grade + vignette (no AO, no bloom).
+//   render (MSAA: 4× on a 1× screen, 2× on a denser one) → N8AO contact
+//   shadows (half res, cool blue; high only) → one effect pass: bloom (only
+//   what glows: crystals, glowing mushrooms, fireflies, light shafts, the
+//   hero's ring; high and medium), the colour grade, a vignette.
+//   (The levels: render/quality.js; tasks/20261107-perf-todo.md.)
 // No tone mapping: the Polyfork models were made for plain sRGB output (ACES
 // washed them out in scary-island); the grade is a gentle look instead.
 // Additive glows (sprites, light shafts, pools of light) write no depth, so
@@ -15,24 +15,13 @@ import * as THREE from 'three';
 import { BlendFunction, BloomEffect, Effect, EffectComposer, EffectPass, RenderPass, VignetteEffect } from 'postprocessing';
 import { N8AOPostPass } from 'n8ao';
 
-/** `?q=low`: no AO, no bloom, a smaller shadow map (slow machines). */
-export function qualityFromUrl(search) {
-  return new URLSearchParams(search).get('q') === 'low' ? 'low' : 'high';
-}
+// (the levels and how a page picks one: render/quality.js)
+export { chooseQuality, QUALITY_KEY, SMALL } from './quality.js';
 
-/**
- * The quality a page starts with (release): `?q=low|high` in the address
- * first, else what the menu's 화질 toggle saved, else low on a phone or a
- * small tablet (a touch screen whose short side is at most `SMALL` css px:
- * full AO and bloom cost them too much) and high everywhere else.
- */
-export const QUALITY_KEY = 'secret-cave-quality';
-export const SMALL = 820;
-export function chooseQuality({ search = '', saved = null, touch = false, shortSide = Infinity } = {}) {
+/** `?q=low|medium|high` in the address; anything else: high. */
+export function qualityFromUrl(search) {
   const q = new URLSearchParams(search).get('q');
-  if (q === 'low' || q === 'high') return q;
-  if (saved === 'low' || saved === 'high') return saved;
-  return touch && shortSide <= SMALL ? 'low' : 'high';
+  return q === 'low' || q === 'medium' ? q : 'high';
 }
 
 // Cozy grade in linear light: a little more saturation, the shadows lifted
@@ -72,15 +61,22 @@ class GradeEffect extends Effect {
  * The composer for one renderer. `render(dt, scene, camera)` draws a frame
  * of whatever scene and lens it is given (the game's, or the intro
  * cutscene's own set: ui/intro.js), through the same buffers.
+ * `configure({ msaa, ao, bloom })` switches the chain live (the quality
+ * levels, render/quality.js; the ?perf=1 overlay's switches): AO and each
+ * effect pass are made the first time they are wanted, only one effect
+ * pass is on at a time.
  */
-export function createPost(renderer, scene, camera, quality) {
-  const composer = new EffectComposer(renderer, { frameBufferType: THREE.HalfFloatType, multisampling: 4 });
+export function createPost(renderer, scene, camera, settings) {
+  const composer = new EffectComposer(renderer, { frameBufferType: THREE.HalfFloatType, multisampling: settings.msaa ?? 4 });
+  // Perf pass: only the scene is drawn multisampled. The composer's second
+  // buffer takes the AO pass's full-screen composite, which needs no MSAA
+  // (it was a 4× HalfFloat target resolved every frame for nothing)
+  const singleOut = () => { if (composer.outputBuffer.samples) { composer.outputBuffer.samples = 0; composer.outputBuffer.dispose(); } };
+  singleOut();
   const renderPass = new RenderPass(scene, camera);
   composer.addPass(renderPass);
-  // (release: the menu's 화질 toggle switches live: the high chain's AO and
-  // bloom are made the first time they are wanted, and each quality has its
-  // own effect pass; only the current one is on)
-  let ao = null, bloom = null, highPass = null, lowPass = null;
+  let ao = null, bloom = null, aoMode = 'Low';
+  const effectPasses = {}; // 'bloom' | 'plain' (grade + vignette only)
   const makeAo = () => {
     const size = renderer.getSize(new THREE.Vector2());
     ao = new N8AOPostPass(lastScene, lastCamera, size.x, size.y);
@@ -97,16 +93,19 @@ export function createPost(renderer, scene, camera, quality) {
     });
     composer.addPass(ao, 1); // (right after the render)
   };
-  const makeHigh = () => {
-    bloom = new BloomEffect({ luminanceThreshold: 0.95, luminanceSmoothing: 0.1, intensity: 0.5, mipmapBlur: true, radius: 0.6 });
-    highPass = new EffectPass(lastCamera, bloom, new GradeEffect(), new VignetteEffect({ offset: 0.3, darkness: 0.45 }));
-    highPass.renderToScreen = true;
-    composer.addPass(highPass, composer.passes.indexOf(plainPass));
-  };
-  const makeLow = () => {
-    lowPass = new EffectPass(lastCamera, new GradeEffect(), new VignetteEffect({ offset: 0.3, darkness: 0.45 }));
-    lowPass.renderToScreen = true;
-    composer.addPass(lowPass, composer.passes.indexOf(plainPass));
+  const makeEffects = (withBloom) => {
+    const list = [];
+    if (withBloom) {
+      // the bright parts are found at half resolution (the blur's mip chain
+      // starts at half anyway): one full-screen HalfFloat pass less
+      bloom = new BloomEffect({ luminanceThreshold: 0.95, luminanceSmoothing: 0.1, intensity: 0.5, mipmapBlur: true, radius: 0.6, levels: BLOOM_LEVELS });
+      bloom.luminancePass.resolution.scale = 0.5;
+      list.push(bloom);
+    }
+    const pass = new EffectPass(lastCamera, ...list, new GradeEffect(), new VignetteEffect({ offset: 0.3, darkness: 0.45 }));
+    pass.renderToScreen = true;
+    composer.addPass(pass, composer.passes.indexOf(plainPass));
+    return pass;
   };
   // `plain`: the same multisampled render, straight out (no AO, no bloom, no
   // grade, no vignette): the intro cutscene's sets were lit for that (an
@@ -117,39 +116,46 @@ export function createPost(renderer, scene, camera, quality) {
   composer.addPass(plainPass);
   let lastScene = scene, lastCamera = camera, wasPlain = false;
   function apply() {
-    const high = post.quality === 'high';
-    if (high && !ao) makeAo();
-    if (high && !highPass) makeHigh();
-    if (!high && !lowPass) makeLow();
-    if (ao) ao.enabled = high && !wasPlain;
-    if (highPass) highPass.enabled = high && !wasPlain;
-    if (lowPass) lowPass.enabled = !high && !wasPlain;
+    const s = post.settings;
+    if (composer.multisampling !== s.msaa) { composer.multisampling = s.msaa; singleOut(); }
+    if (s.ao && !ao) makeAo();
+    const want = s.bloom ? 'bloom' : 'plain';
+    effectPasses[want] ??= makeEffects(s.bloom);
+    if (ao) ao.enabled = s.ao && !wasPlain;
+    if (ao && ao.configuration.transparencyAware !== (s.aoGlows ?? true)) ao.configuration.transparencyAware = s.aoGlows ?? true;
+    if (ao && aoMode !== (s.aoMode ?? 'Low')) { aoMode = s.aoMode ?? 'Low'; ao.setQualityMode(aoMode); }
+    for (const [k, p] of Object.entries(effectPasses)) p.enabled = k === want && !wasPlain;
     plainPass.enabled = wasPlain;
     post.ao = ao; post.bloom = bloom;
+    if (ao) { ao.scene = lastScene; ao.camera = lastCamera; }
+    for (const p of Object.values(effectPasses)) p.mainCamera = lastCamera;
   }
   const post = {
-    quality, composer, ao, bloom,
+    settings: { ...CHAIN, ...settings }, composer, ao, bloom,
     /** One frame of `s` seen by `c` (the game's by default); `plain`: no effects (see above). */
     render(dt, s = scene, c = camera, plain = false) {
       if (s !== lastScene || c !== lastCamera) {
         lastScene = s; lastCamera = c;
         renderPass.mainScene = s; renderPass.mainCamera = c;
         if (ao) { ao.scene = s; ao.camera = c; }
-        for (const p of [highPass, lowPass, plainPass]) if (p) p.mainCamera = c;
+        for (const p of [...Object.values(effectPasses), plainPass]) p.mainCamera = c;
       }
       if (plain !== wasPlain) { wasPlain = plain; apply(); }
       composer.render(dt);
     },
-    /** 'high' | 'low', live (the menu's 화질 toggle). */
-    setQuality(q) {
-      if (q !== 'high' && q !== 'low') return;
-      post.quality = q;
+    /** Live: { msaa, ao, bloom, aoGlows, aoMode } (what is left out: CHAIN's). */
+    configure(next) {
+      post.settings = { ...CHAIN, ...next };
       apply();
-      if (ao) { ao.scene = lastScene; ao.camera = lastCamera; }
-      for (const p of [highPass, lowPass]) if (p) p.mainCamera = lastCamera;
     },
+    /** What each pass is called in the ?perf=1 overlay's GPU timers. */
+    passName(p) { return p === renderPass ? 'scene' : p === ao ? 'ao' : 'effect'; },
     setSize: (w, h) => composer.setSize(w, h),
   };
   apply();
   return post;
 }
+// The chain's switches when a level says nothing of them: MSAA samples, AO
+// (`aoGlows`: N8AO's transparencyAware, `aoMode` its quality), bloom.
+const CHAIN = { msaa: 4, ao: true, bloom: true, aoGlows: true, aoMode: 'Low' };
+const BLOOM_LEVELS = 6; // (8 by default: the last two mips of a ~1 Mpx frame are a few texels and add nothing a radius of 0.6 shows)

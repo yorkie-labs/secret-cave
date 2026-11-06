@@ -68,10 +68,27 @@ word under each icon (망치, 도구, 바꾸기, 구르기, 방패, 약초, 냄�
 
 ## Quality
 
-Phones and tablets start on low quality (no ambient occlusion or bloom, a
-smaller shadow map); computers start on high. The Esc menu switches it
-(**화질: 높음 / 낮음**). The address can force it too: add `?q=low` or
-`?q=high`, e.g. https://yorkie-labs.github.io/secret-cave/?q=low.
+Three levels; the Esc menu cycles them (**화질: 높음 → 중간 → 낮음**) and this
+browser remembers the pick.
+
+| Level | Pixels per CSS pixel | Ambient occlusion | Bloom | Shadow map | MSAA |
+|---|---|---|---|---|---|
+| 높음 high | up to 1.5 | yes | yes | 2048 | 4× on a 1× screen, 2× on a denser one |
+| 중간 medium | up to 1.25 | no | yes | 1024 | same |
+| 낮음 low | 1 | no | no | 1024 | 2× |
+
+Phones and small tablets start low, computers high. If a computer can't keep
+up (the median frame over 20 ms, under ~50 fps, a few seconds into play) the
+game steps down one level by itself and says so (부드럽게 하려고 화질을
+낮췄어요); it never steps up, and never overrides a level picked in the menu.
+The address can force a level: `?q=high`, `?q=medium` or `?q=low`, e.g.
+https://yorkie-labs.github.io/secret-cave/?q=low.
+
+**Slow on your machine?** Open the game with `?perf=1`
+(https://yorkie-labs.github.io/secret-cave/?perf=1): a panel in the top-left
+corner shows fps, frame time, CPU time, draw calls, the pixels drawn and the
+level, with switches to turn ambient occlusion, bloom, shadows, MSAA and the
+pixel ratio off and on. Tell us which switch helps most.
 
 ## Run locally
 

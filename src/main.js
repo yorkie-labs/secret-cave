@@ -1,7 +1,10 @@
 import '@fontsource/jua'; // the Jua font, bundled: no third-party font server for a kids' game
 import * as THREE from 'three';
 import { stage } from './vendor/polyfork/stage.mjs';
-import { createPost, chooseQuality, QUALITY_KEY } from './render/post.js';
+import { createPost } from './render/post.js';
+import { chooseQuality, createAdaptive, msaaFor, pixelRatioFor, savedValue, PRESETS, QUALITY_KEY } from './render/quality.js';
+import { createPerfOverlay } from './render/perfOverlay.js';
+import { trimCasters } from './render/casters.js';
 import { caveLight } from './render/light.js';
 import { createPhysics } from './physics/physics.js';
 import { loadModels, prefetch, regionOf, modelStatus } from './world/models.js';
@@ -50,6 +53,7 @@ import { addSilhouette } from './entities/silhouette.js';
 const $ = (id) => document.getElementById(id);
 
 async function boot() {
+  const params = new URLSearchParams(location.search);
   // no 3D in this browser: say so kindly instead of failing with an error
   const probe = document.createElement('canvas');
   if (!(probe.getContext('webgl2') || probe.getContext('webgl'))) {
@@ -57,25 +61,34 @@ async function boot() {
     return;
   }
   // K1: no MSAA on the canvas: the post chain renders into its own
-  // multisampled buffer (render/post.js); ?q=low: no AO, no bloom.
-  // Release: phones and small tablets start low; the menu's 화질 toggle
-  // (kept in this browser) and ?q= in the address override that
+  // multisampled buffer (render/post.js).
+  // Perf pass: three levels (render/quality.js: 높음 / 중간 / 낮음, each with
+  // its own pixel-ratio cap, effects and shadow map). Phones and small
+  // tablets start low; ?q= in the address and the menu's 화질 button win;
+  // otherwise a slow machine steps itself down (below)
   const quality = chooseQuality({ search: location.search, saved: storage.getItem(QUALITY_KEY), touch: matchMedia('(pointer: coarse)').matches, shortSide: Math.min(screen.width, screen.height) });
   const renderer = new THREE.WebGLRenderer({ antialias: false, stencil: false, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setPixelRatio(pixelRatioFor(quality.level, devicePixelRatio));
   renderer.setSize(innerWidth, innerHeight);
   $('app').appendChild(renderer.domElement);
   const scene = new THREE.Scene();
+  // Perf pass: the world's matrices are brought up to date once a frame
+  // (the main loop, before the draw), not by every render of the scene: the
+  // post chain draws it three times (the scene, and twice more for the AO's
+  // see-through layers), and each walked all ~7,000 objects again
+  scene.matrixWorldAutoUpdate = false;
   const camera = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 0.1, 300);
   addEventListener('resize', () => {
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
-    renderer.setSize(innerWidth, innerHeight);
-    post.setSize(innerWidth, innerHeight);
+    applyRender(); // (the window may have moved to a screen of another pixel ratio)
   });
   // underground: no sky, a dim cool rig; crystals and the hero's own glow do
   // the rest (GDD §9 "빛")
   const look = stage(renderer, scene, { time: CAVE_TIME, sky: false, shadowSpan: 56, far: 160 });
+  // Perf pass: outline hulls, silhouette copies and tiny parts cast nothing
+  // (render/casters.js): every look.shadows(root) goes through this
+  { const stageShadows = look.shadows.bind(look); look.shadows = (root) => trimCasters(stageShadows(root)); }
   // night is too murky for a kids' game: lift the fill and the key so the
   // floor and the white hero read at the default zoom (M2 review); the
   // crystals keep their colour pools, so the cave stays mysterious
@@ -84,10 +97,21 @@ async function boot() {
   // K1: the key from the lens's front-left, soft blue shadows in a box that
   // follows the hero (stage's own 56 m box and key placement are taken
   // over each frame), a warm-ground / cool-sky fill (render/light.js)
-  const light = caveLight(look, { quality });
-  const post = createPost(renderer, scene, camera, quality);
+  const light = caveLight(look, { quality: quality.level });
+  const post = createPost(renderer, scene, camera, { ...PRESETS[quality.level], msaa: msaaFor(PRESETS[quality.level].msaa, renderer.getPixelRatio()) });
+  // what is drawn: the level's preset, and the ?perf=1 overlay's switches on top
+  let level = quality.level, overrides = {};
+  const renderSettings = () => ({ ...PRESETS[level], ...overrides });
+  function applyRender() {
+    const s = renderSettings();
+    renderer.setPixelRatio(pixelRatioFor(level, devicePixelRatio, s));
+    renderer.setSize(innerWidth, innerHeight);
+    post.configure({ ...s, msaa: msaaFor(s.msaa, renderer.getPixelRatio()) });
+    post.setSize(innerWidth, innerHeight);
+    light.setMapSize(s.shadowMap);
+    light.setShadows(s.shadows);
+  }
 
-  const params = new URLSearchParams(location.search);
   // Release: a debug link (?start=, ?seed=, ?world=) on the published game
   // plays in the sandbox save slot (core/state.js), so a shared test link
   // never touches a child's real save; the dev server keeps one slot
@@ -107,9 +131,37 @@ async function boot() {
   const hud = createHud();
   const input = createInput();
   const G = createGame({ scene, camera, renderer, look, physics, state, run, input, hud });
-  G.quality = quality; G.post = post;
-  // the menu's 화질 toggle: live, and kept in this browser
-  G.setQuality = (q) => { G.quality = q; post.setQuality(q); light.setQuality(q); storage.setItem(QUALITY_KEY, q); };
+  G.quality = level; G.post = post;
+  // the menu's 화질 button (high → medium → low): live, and kept in this
+  // browser; `chosen: false` is the adaptive step down's own (kept as a
+  // start, never as the player's pick)
+  G.setQuality = (q, { chosen = true } = {}) => {
+    if (!PRESETS[q]) return;
+    G.quality = level = q;
+    applyRender();
+    storage.setItem(QUALITY_KEY, savedValue(q, chosen));
+    if (chosen) G.adaptive.stop();
+  };
+  // the adaptive step down (render/quality.js createAdaptive): after 5 s of
+  // play, if the median frame is over 20 ms, one level down and a word;
+  // never up, never over a level someone chose (the menu, ?q=). Headless
+  // checks keep their level unless the address asks (?adapt=1); ?adapt=0
+  // turns it off
+  const adaptParam = params.get('adapt');
+  G.adaptive = createAdaptive(level);
+  if (quality.chosen || adaptParam === '0' || (navigator.webdriver && adaptParam !== '1')) G.adaptive.stop();
+  // the ?perf=1 overlay's switches (and checks: scenarios/perf.js): any of
+  // { ao, bloom, shadows, msaa, pixelRatio, shadowMap } over the level,
+  // until reload; { reset: true } drops them; { level } is the menu's button
+  G.setRender = (over) => {
+    if (over.level) { G.setQuality(over.level); return; }
+    overrides = over.reset ? {} : { ...overrides, ...over };
+    applyRender();
+  };
+  G.renderSettings = () => ({ ...renderSettings(), msaa: post.settings.msaa, pixelRatio: renderer.getPixelRatio() });
+  // ?perf=1: the frame's costs and live switches (render/perfOverlay.js)
+  const perf = params.get('perf') === '1' ? createPerfOverlay({ renderer, post, get: G.renderSettings, level: () => level, set: G.setRender }) : null;
+  G.perfStats = () => perf?.stats() ?? null;
   Object.defineProperty(G, 'saveKey', { get: saveKey }); // (checks read the save back with it)
   G.groundMeshes = []; // what a click on "the ground" may land on
   G.fixedSeed = fixedSeed;
@@ -265,11 +317,15 @@ async function boot() {
   // main loop
   const clock = new THREE.Clock();
   const fogTarget = new THREE.Color();
-  let musicTimer = 0;
+  let musicTimer = 0, lastFrame = 0;
   renderer.setAnimationLoop(() => {
     const dt = Math.min(clock.getDelta(), 0.1);
+    perf?.begin();
+    // the adaptive step down counts play frames only (no title, loading,
+    // menu, cutscene, intro or hidden tab: render/quality.js)
+    { const now = performance.now(), ms = lastFrame ? now - lastFrame : 0; lastFrame = now; stepAdaptive(ms); }
     // the intro cutscene draws its own set (ui/intro.js); the world waits
-    if (story.view) { story.view(dt); return; }
+    if (story.view) { perf?.mid(); story.view(dt); perf?.end(); return; }
     if (G.running()) {
       physics.step(dt, (step) => { if (G.mode === 'play') G.player.fixedUpdate(G.pointer.moveInput(input.move), G.cam.yaw, step); });
       physics.recoverDynamics(-3);
@@ -296,9 +352,12 @@ async function boot() {
       // W1: each place tints the haze its own way (the camp: the pit's purple)
       if (G.expedition) scene.fog.color.lerp(fogTarget.set(G.expedition.area?.fog ?? G.world.def.look?.fog ?? WORLD_FOG), 1 - Math.exp(-dt * 1.5));
     }
+    perf?.mid();
     look.update();
     { const lens = lensView(camera, G); light.update(lens.feet, lens.view, G.world?.heightOnGrid); }
+    scene.updateMatrixWorld();
     post.render(dt);
+    perf?.end();
 
     // music mood, a few times a second
     musicTimer -= dt;
@@ -314,6 +373,14 @@ async function boot() {
       setMusic(moodOf(G));
     }
   });
+
+  function stepAdaptive(ms) {
+    if (G.adaptive.done) return;
+    const active = G.mode === 'play' && !story.view && !document.hidden && !G.models.pending;
+    if (G.adaptive.frame(ms, active) !== 'down') return;
+    G.setQuality(G.adaptive.level, { chosen: false });
+    G.toast('부드럽게 하려고 화질을 낮췄어요 (메뉴에서 바꿀 수 있어요)', 4500);
+  }
 
   // the save only changes at a few moments (G.refresh); also keep it when the
   // tab is hidden or closed, so play time is never lost
