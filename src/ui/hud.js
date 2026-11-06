@@ -121,12 +121,11 @@ export function createHud() {
       if (touchShield) touchShield.classList.toggle('dim', !hasShield);
     },
 
-    // every frame: the cooldown sweeps on the tool and the shield, and the
-    // shield's slot lit while it is up
-    cooldowns({ tool = 0, shield = 0, shieldUp = false }) {
+    // every frame: the cooldown sweep on the tool, and the shield's slot lit
+    // while it is up (the shield has no cooldown: no sweep)
+    cooldowns({ tool = 0, shieldUp = false }) {
       setSweep($('skill-right')?.querySelector('.cd'), tool);
       const s3 = $('slot-3');
-      setSweep(s3?.querySelector('.cd'), shield);
       if (s3 && s3.classList.contains('up') !== shieldUp) s3.classList.toggle('up', shieldUp);
     },
     // the tool is still cooling down: a little shake

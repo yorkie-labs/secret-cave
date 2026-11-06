@@ -1,19 +1,21 @@
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { addOutline } from './outline.js';
 
-// The Maltese, our hero (GDD §3.1): a chibi white puppy, big round head on a
-// small body, fluffy white fur, long floppy ears, black button eyes and nose,
-// a pink bow on the top-knot, a little khaki adventurer vest with a side bag,
-// and a wooden hammer. Built from low-poly primitives in the flat-shaded
-// Polyfork style, with pivots placed so it animates by hand (no skeleton).
-//
-// The fur is "puffs": a core ball with small balls merged over its surface,
-// one mesh per part, so the outline traces the fluffy edge and not every tuft.
+// The Maltese, our hero (GDD §3.1): a chibi white puppy in a soft puppy
+// cut (the user's reference photos, 2026-11-06): a big round fluffy head,
+// rounded fluffy ears hanging at the sides, big round glossy black eyes in
+// dark rims, a black button nose, a happy open mouth; a compact short-coated
+// body, short sturdy legs with fluffy socks, a short plume of a tail. A
+// little khaki adventurer vest with a side bag, and a wooden hammer. No bow,
+// no lashes: neither boy nor girl. Built from primitives (the props
+// flat-shaded in the Polyfork style, the fur smooth and softly noisy, see
+// `fluffy`), with pivots so it animates by hand (no skeleton). The ears and
+// the tail sway on springs in the animator (secondary motion).
 
 export const MALTESE_COLORS = {
   fur: '#fbf8f1', furShade: '#ece4d6', ear: '#f1e6d2',
-  eye: '#17110d', nose: '#141010', tongue: '#f08a9a', bow: '#ff7eb3', bowDark: '#e0558f',
+  eye: '#0d0908', eyeRim: '#1a1212', nose: '#141010', mouth: '#4a2228', tongue: '#ec8086', nail: '#2a2220',
   vest: '#c9a96b', vestDark: '#9a7a45', pocket: '#b08f55',
   bag: '#8a5a32', bagFlap: '#6e4526', strap: '#6b4423', buckle: '#e9c45c',
   wood: '#b07a46', woodDark: '#7a5230', band: '#8c8f96',
@@ -44,6 +46,9 @@ function addRim(m) {
   m.onBeforeCompile = (shader) => {
     shader.uniforms.uRim = { value: RIM.color.clone().multiplyScalar(RIM.strength) };
     shader.fragmentShader = `uniform vec3 uRim;\n${shader.fragmentShader}`.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+      #ifdef USE_COLOR
+      totalEmissiveRadiance *= vColor.rgb;
+      #endif
       totalEmissiveRadiance += uRim * pow(1.0 - clamp(abs(dot(normal, normalize(vViewPosition))), 0.0, 1.0), ${RIM.power.toFixed(2)});`);
   };
   m.customProgramCacheKey = () => 'malteseRim';
@@ -66,30 +71,76 @@ const pivot = (name, x = 0, y = 0, z = 0) => {
   return g;
 };
 
-// A fluffy ball: a core with `tufts` small balls spread evenly over it
-// (a Fibonacci sphere, jittered by a fixed seed so every Maltese is the same).
-// `skip(dir)` leaves a patch bare (the face). Scaled after merging, so an ear
-// stays fluffy all along its length.
-function puff(r, { tufts = 12, tuft = 0.42, out = 0.86, detail = 1, tuftDetail = 1, seed = 1, skip = null, sx = 1, sy = 1, sz = 1 } = {}) {
-  const parts = [new THREE.IcosahedronGeometry(r, detail)];
-  const golden = Math.PI * (3 - Math.sqrt(5));
-  let s = seed * 9301 + 49297;
-  const rand = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
-  for (let i = 0; i < tufts; i++) {
-    const y = 1 - ((i + 0.5) / tufts) * 2, rad = Math.sqrt(1 - y * y), th = golden * i + seed;
-    const dir = new THREE.Vector3(Math.cos(th) * rad, y, Math.sin(th) * rad);
-    if (skip?.(dir)) continue;
-    const tr = r * tuft * (0.8 + rand() * 0.4);
-    const g = new THREE.IcosahedronGeometry(tr, tuftDetail);
-    g.rotateX(rand() * 3).rotateY(rand() * 3);
-    g.translate(dir.x * r * out, dir.y * r * out, dir.z * r * out);
-    parts.push(g);
+// A lock of long hair (the tail's plume): a closed lathe hanging from its
+// pivot down to -len, its radius `profile(t)` (t: 0 top, 1 tip), soft
+// strand grooves round it (a touch darker), uneven strand tips at the end.
+// `shape(v, t)` bends it afterwards. Smooth normals: silky, not clumpy.
+function lock(len, profile, { seg = 22, rows = 12, grooves = 9, groove = 0.07, tips = 0.06, shade = 0.32, sx = 1, sz = 1, shape = null } = {}) {
+  const pts = [new THREE.Vector2(0, -len * 0.985)];
+  for (let i = rows; i >= 0; i--) {
+    const t = i / rows;
+    pts.push(new THREE.Vector2(Math.max(0.002, profile(t)), -t * len));
   }
-  const geo = mergeGeometries(parts.map((g) => { g.deleteAttribute('uv'); return g; }));
-  geo.scale(sx, sy, sz);
+  pts.push(new THREE.Vector2(0, 0.0));
+  let geo = new THREE.LatheGeometry(pts, seg);
+  geo.deleteAttribute('uv'); geo.deleteAttribute('normal');
+  geo = mergeVertices(geo);
+  const p = geo.attributes.position, v = new THREE.Vector3();
+  const col = new Float32Array(p.count * 3);
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i);
+    const t = THREE.MathUtils.clamp(-v.y / len, 0, 1);
+    const th = Math.atan2(v.x, v.z);
+    const strand = 0.5 + 0.5 * Math.cos(th * grooves); // 1 mid-strand, 0 in a groove
+    const k = 1 - groove * (0.35 + 0.65 * t) * Math.pow(1 - strand, 3);
+    // a groove is a little darker (strands, even under the glow)
+    const c = 1 - shade * (0.45 + 0.55 * t) * Math.pow(1 - strand, 1.6) - 0.06 * THREE.MathUtils.smoothstep(t, 0.9, 1);
+    col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = c;
+    v.x *= k * sx; v.z *= k * sz;
+    v.y -= THREE.MathUtils.smoothstep(t, 0.82, 1) * tips * len * strand; // strand tips
+
+    shape?.(v, t);
+    p.setXYZ(i, v.x, v.y, v.z);
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  geo.computeVertexNormals();
   geo.computeBoundingSphere();
   return geo;
 }
+// Soft fur (the puppy cut, GDD §3.1): a smooth ball nudged in and out by
+// a fine fixed noise, so its outline is a little wispy and the light rolls
+// softly over it: not separate tufts (that read as a poodle) and not long
+// strands. The low spots are a touch darker (vertex colours). `shape(v, n)`
+// moves a vertex (n: its direction from the centre); `calm(n)` 0…1 smooths the noise there.
+function fluffy(r, { w = 24, h = 16, amp = 0.05, freq = 9, seed = 1, shade = 0.14, shape = null, calm = null } = {}) {
+  let geo = new THREE.SphereGeometry(r, w, h);
+  geo.deleteAttribute('uv'); geo.deleteAttribute('normal');
+  geo = mergeVertices(geo);
+  let s = seed * 9301 + 49297;
+  const rand = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+  const waves = Array.from({ length: 7 }, (_, i) => {
+    const k = new THREE.Vector3(rand() * 2 - 1, rand() * 2 - 1, rand() * 2 - 1).normalize();
+    return { k, f: freq * (i < 4 ? 1 : 2.3), a: i < 4 ? 1 : 0.45, ph: rand() * 6.28 };
+  });
+  const p = geo.attributes.position, v = new THREE.Vector3(), n = new THREE.Vector3(), col = new Float32Array(p.count * 3);
+  for (let i = 0; i < p.count; i++) {
+    n.fromBufferAttribute(p, i).normalize();
+    let q = 0;
+    for (const wv of waves) q += wv.a * Math.sin(n.dot(wv.k) * wv.f + wv.ph);
+    q /= 3.4; // (about -1…1)
+    if (calm) q *= 1 - calm(n); // (smoother where `calm` says: the face)
+    v.copy(n).multiplyScalar(r * (1 + amp * q));
+    shape?.(v, n);
+    p.setXYZ(i, v.x, v.y, v.z);
+    col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = 1 - shade * (0.5 - 0.5 * q);
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  geo.computeVertexNormals();
+  geo.computeBoundingSphere();
+  return geo;
+}
+const HAIR = { flatShading: false, roughness: 0.6 };
+const FUR_SOFT = { ...HAIR, vertexColors: true }; // (fluffy and lock geometry: their low spots shaded)
 
 export function createHammer() {
   const C = MALTESE_COLORS;
@@ -161,23 +212,25 @@ export function createMaltese() {
   const hips = pivot('hips', 0, 0.27, 0);
   body.add(hips);
 
-  // Legs: short fluffy stumps with round paws.
+  // Legs: short and sturdy, soft white, fluffy "socks" round the paws with
+  // a hint of dark toenails (the paws wear the wellies, cosmetics.js).
   const legs = {};
   for (const side of [-1, 1]) {
-    const leg = pivot(side < 0 ? 'legL' : 'legR', side * 0.085, 0, 0);
-    leg.add(mesh(puff(0.07, { tufts: 8, seed: 3 + side, sy: 1.25 }), C.fur, { y: -0.1 }));
-    const foot = pivot('foot', 0, -0.2, 0.025);
-    foot.add(mesh(puff(0.062, { tufts: 6, seed: 5 + side, sz: 1.3, sy: 0.8 }), C.furShade, { y: 0.0 }));
+    const leg = pivot(side < 0 ? 'legL' : 'legR', side * 0.1, 0, 0);
+    leg.add(mesh(fluffy(0.062, { amp: 0.06, seed: 3 + side }), C.fur, { y: -0.09, sy: 1.45, extra: FUR_SOFT }));
+    const foot = pivot('foot', 0, -0.2, 0.04);
+    foot.add(mesh(fluffy(0.07, { amp: 0.11, freq: 12, seed: 5 + side }), C.fur, { sz: 1.25, sy: 0.78, extra: FUR_SOFT }));
+    for (const tx of [-0.025, 0, 0.025]) foot.add(mesh(new THREE.SphereGeometry(0.009, 5, 3), C.nail, { x: tx, y: -0.035, z: 0.083 }));
     leg.add(foot);
     hips.add(leg);
     legs[side < 0 ? 'L' : 'R'] = leg;
   }
 
-  // Torso: a small fluffy body, a fur skirt under the vest and a fur collar.
+  // Torso: compact, short soft fur (the puppy cut), the vest over it.
   const torso = pivot('torso', 0, 0.02, 0);
   hips.add(torso);
-  torso.add(mesh(new THREE.IcosahedronGeometry(0.155, 1), C.fur, { y: 0.15, sy: 1.15 }));
-  torso.add(mesh(puff(0.15, { tufts: 14, seed: 7, out: 0.9, sy: 0.45, skip: (d) => d.y > 0.2 }), C.fur, { y: 0.02 }));
+  torso.add(mesh(fluffy(0.155, { amp: 0.05, seed: 7 }), C.fur, { y: 0.15, sy: 1.15, extra: FUR_SOFT }));
+  torso.add(mesh(fluffy(0.15, { amp: 0.06, seed: 8 }), C.fur, { y: 0.03, sy: 0.75, sx: 1.05, extra: FUR_SOFT })); // the hips
   // Vest: an open khaki shell, the white chest showing in front.
   const vestGeo = new THREE.CylinderGeometry(0.158, 0.182, 0.22, 12, 1, true, 0.5, Math.PI * 2 - 1.0);
   torso.add(mesh(vestGeo, C.vest, { y: 0.15, extra: { side: THREE.DoubleSide } }));
@@ -188,23 +241,29 @@ export function createMaltese() {
   }
   // Side bag (the item pouch) on a strap from the right shoulder to the left hip.
   torso.add(mesh(new THREE.TorusGeometry(0.19, 0.012, 4, 18), C.strap, { y: 0.16, rz: 0.75, sx: 1, sz: 0.95, rx: 0 }));
-  const bag = pivot('bag', -0.19, 0.04, 0.03);
+  const bag = pivot('bag', -0.2, 0.04, 0.03);
   bag.add(mesh(new THREE.BoxGeometry(0.07, 0.1, 0.12), C.bag, {}));
   bag.add(mesh(new THREE.BoxGeometry(0.076, 0.045, 0.126), C.bagFlap, { y: 0.035 }));
   bag.add(mesh(new THREE.BoxGeometry(0.02, 0.025, 0.03), C.buckle, { x: -0.04, y: 0.02 }));
   torso.add(bag);
-  // Tail: a white plume curled up over the back.
-  const tail = pivot('tail', 0, 0.06, -0.15);
-  tail.add(mesh(puff(0.065, { tufts: 9, seed: 11, sy: 1.7 }), C.fur, { y: 0.09, z: -0.04, rx: -0.75 }));
+  // Tail: a short plume, up and curled over the back.
+  const tail = pivot('tail', 0, 0.08, -0.17);
+  const plume = lock(0.2, (t) => 0.025 + 0.045 * Math.sin(Math.min(1, t * 1.25) * Math.PI * 0.62), {
+    grooves: 7, groove: 0.1, tips: 0.14, shade: 0.2, sz: 0.8,
+    // bend the lock (hanging down -y) round toward -z: after the half turn
+    // below it rises from the back and curls forward over it
+    shape: (v, t) => { const a = -2.4 * t, R = 0.2 / 2.4, d = R + v.z; v.z = -(R - d * Math.cos(a)); v.y = -d * Math.sin(-a); },
+  });
+  tail.add(mesh(plume, C.fur, { rx: Math.PI - 0.9, extra: FUR_SOFT }));
   torso.add(tail);
 
-  // Arms: fluffy white, paws at the end. The right paw holds the hammer, the
-  // left one the water gun when it is out.
+  // Arms: short, soft, fluffy socks round the paws. The right paw holds the
+  // hammer, the left one the water gun when it is out.
   const arms = {};
   for (const side of [-1, 1]) {
     const arm = pivot(side < 0 ? 'armL' : 'armR', side * 0.165, 0.24, 0);
-    arm.add(mesh(puff(0.055, { tufts: 7, seed: 13 + side, sy: 1.55 }), C.fur, { y: -0.08 }));
-    arm.add(mesh(puff(0.05, { tufts: 5, seed: 17 + side }), C.furShade, { y: -0.17 }));
+    arm.add(mesh(fluffy(0.052, { amp: 0.06, seed: 13 + side }), C.fur, { y: -0.08, sy: 1.55, extra: FUR_SOFT }));
+    arm.add(mesh(fluffy(0.054, { amp: 0.11, freq: 12, seed: 17 + side }), C.fur, { y: -0.17, extra: FUR_SOFT }));
     torso.add(arm);
     arms[side < 0 ? 'L' : 'R'] = arm;
   }
@@ -234,49 +293,82 @@ export function createMaltese() {
   vine.visible = false;
   handL.add(vine);
 
-  // Head: big and round, fluffy all over except the face.
+  // Head: big and round, a soft teddy/puppy cut: the fur a little wispy at
+  // the edge, full round cheeks, the face a little recessed so the fur
+  // frames it (user's reference photos, 2026-11-06).
   const neck = pivot('neck', 0, 0.3, 0);
   torso.add(neck);
-  neck.add(mesh(puff(0.13, { tufts: 12, seed: 19, sy: 0.5 }), C.fur, { y: 0.0 })); // fur collar
+  neck.add(mesh(fluffy(0.14, { amp: 0.07, seed: 19 }), C.fur, { sy: 0.6, extra: FUR_SOFT })); // the ruff under the chin (the scarf's place)
   const head = pivot('head', 0, 0.22, 0);
   neck.add(head);
-  const face = (d) => d.z > 0.45 && d.y > -0.55 && d.y < 0.6;
-  head.add(mesh(puff(0.25, { tufts: 46, tuft: 0.3, out: 0.92, detail: 2, seed: 23, skip: face }), C.fur, { sx: 1.06, sy: 0.95 }));
-  // muzzle with a little beard, button nose, a pink tongue
-  head.add(mesh(puff(0.095, { tufts: 9, seed: 29, skip: (d) => d.y > 0.2 }), C.fur, { y: -0.085, z: 0.2, sx: 1.3, sy: 0.8 }));
-  head.add(mesh(new THREE.IcosahedronGeometry(0.042, 1), C.nose, { y: -0.045, z: 0.3, sx: 1.2, sy: 0.85, extra: { roughness: 0.35 } }));
-  head.add(mesh(new THREE.SphereGeometry(0.026, 8, 6), C.tongue, { y: -0.135, z: 0.27, sz: 0.6 }));
-  // big round black eyes with a highlight
-  const eyes = [];
+  const F = new THREE.Vector3(0, -0.1, 1).normalize(), smooth = THREE.MathUtils.smoothstep;
+  head.add(mesh(fluffy(0.26, {
+    w: 40, h: 28, amp: 0.05, freq: 12, seed: 23,
+    calm: (n) => 0.8 * smooth(n.dot(F), 0.6, 0.85), // (short fur on the face: the eyes sit clean in it)
+    shape: (v, n) => {
+      const face = smooth(n.dot(F), 0.6, 0.88);
+      const cheek = smooth(Math.abs(n.x), 0.3, 0.75) * smooth(-n.y, -0.25, 0.35) * smooth(n.z, -0.6, 0.2);
+      v.multiplyScalar(1 - 0.07 * face + 0.08 * cheek);
+    },
+  }), C.fur, { sx: 1.06, sy: 0.95, extra: FUR_SOFT }));
+  // a short-furred muzzle, a black button nose, a happy open mouth with its
+  // pink tongue, a few whisker wisps
+  head.add(mesh(fluffy(0.1, { w: 20, h: 14, amp: 0.05, freq: 14, seed: 29 }), C.fur, { y: -0.085, z: 0.18, sx: 1.22, sy: 0.8, extra: FUR_SOFT }));
+  head.add(mesh(new THREE.IcosahedronGeometry(0.044, 1), C.nose, { y: -0.048, z: 0.283, sx: 1.25, sy: 0.85, extra: { roughness: 0.3 } }));
+  head.add(mesh(new THREE.SphereGeometry(0.04, 12, 8), C.mouth, { y: -0.128, z: 0.24, sx: 1.7, sy: 0.85, sz: 0.7 }));
+  head.add(mesh(new THREE.SphereGeometry(0.028, 10, 8), C.tongue, { y: -0.15, z: 0.25, sx: 1.05, sy: 1.25, sz: 0.55 }));
   for (const side of [-1, 1]) {
-    const eye = pivot('eye', side * 0.1, 0.035, 0.212);
-    eye.add(mesh(new THREE.SphereGeometry(0.056, 12, 10), C.eye, { sz: 0.7, extra: { roughness: 0.25 } }));
-    eye.add(mesh(new THREE.SphereGeometry(0.017, 6, 4), '#ffffff', { x: side * -0.014, y: 0.022, z: 0.036, extra: { emissive: '#ffffff', emissiveIntensity: 0.6 } }));
-    head.add(eye);
+    for (const [a, y] of [[0.35, -0.07], [0.7, -0.1]]) {
+      head.add(mesh(new THREE.ConeGeometry(0.009, 0.075, 4), C.fur, { x: side * 0.105, y, z: 0.22, rz: side * (-Math.PI / 2 + a), extra: FUR_SOFT }));
+    }
+  }
+  // big round glossy black eyes on the front of the face, a little above
+  // its middle (the 40° game camera looks down on them, wild-island
+  // lessons), about an eye apart. Each is a decal: thin caps of spheres
+  // round the head's middle, so it follows the curve of the face just over
+  // the fur, never bulges past the head's outline nor gets cut by it (user
+  // feedback 2026-11-06): a thin near-black rim of skin, the glossy eye,
+  // a big and a small highlight. No outline (it would read as lashes).
+  const eyes = [];
+  const EYE = { yaw: 0.395, pitch: 0.2, r: 0.051 }; // (where on the head, and how big)
+  const decal = (R, r, color, extra = {}) => {
+    const a = Math.asin(r / R);
+    const g = new THREE.SphereGeometry(R, 20, 3, 0, Math.PI * 2, 0, a).rotateX(Math.PI / 2).translate(0, 0, -R);
+    g.deleteAttribute('uv');
+    const m = mesh(g, color, { extra: { polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2, ...extra } });
+    m.userData.noOutline = true;
+    m.castShadow = false;
+    return m;
+  };
+  for (const side of [-1, 1]) {
+    const seat = pivot('eyeSeat'); // (at the head's middle, its z turned out through the eye)
+    seat.rotation.set(-EYE.pitch, side * EYE.yaw, 0, 'YXZ');
+    head.add(seat);
+    // the fur's face is ~0.245-0.25 out along it (scaled, recessed a little, calm there)
+    const R = 0.256;
+    const rim = decal(R, EYE.r + 0.009, C.eyeRim);
+    rim.position.z = R;
+    seat.add(rim);
+    const eye = pivot('eye', 0, 0, R + 0.002); // (the blink squashes it here)
+    eye.add(decal(R + 0.002, EYE.r, C.eye, { roughness: 0.15 }));
+    const hi = (x, y, r) => { const h = decal(R + 0.004, r, '#ffffff', { emissive: '#ffffff', emissiveIntensity: 0.7 }); h.position.set(x, y, 0.002); return h; };
+    eye.add(hi(side * -0.016, 0.017, 0.016), hi(side * 0.017, -0.019, 0.007));
+    seat.add(eye);
     eyes.push(eye);
   }
-  // top-knot with a pink bow, the Maltese trademark
-  head.add(mesh(puff(0.075, { tufts: 7, seed: 31, sy: 1.2 }), C.fur, { y: 0.27, z: -0.01 }));
-  const bow = pivot('bow', 0, 0.33, 0.0);
-  for (const side of [-1, 1]) bow.add(mesh(new THREE.ConeGeometry(0.045, 0.09, 4), C.bow, { x: side * 0.045, rz: side * Math.PI / 2, sx: 1, sz: 0.5 }));
-  bow.add(mesh(new THREE.IcosahedronGeometry(0.022, 0), C.bowDark, {}));
-  head.add(bow);
-  // long, floppy, fluffy ears hanging past the cheeks
+  // Ears: rounded, fluffy, hanging down the sides and melting into the
+  // round head (they frame the face). On pivots: they swing.
   const ears = [];
   for (const side of [-1, 1]) {
-    const ear = pivot('ear', side * 0.22, 0.1, 0.0);
-    ear.rotation.z = side * 0.12;
-    // a drape of three fluffy locks, flattened against the cheek
-    const locks = [[0.075, -0.06, 0.02], [0.082, -0.18, 0.04], [0.072, -0.31, 0.055]]
-      .map(([lr, ly, lx], i) => puff(lr, { tufts: 10, seed: 37 + side * 5 + i, sy: 1.15 }).translate(side * lx, ly, 0));
-    const earGeo = mergeGeometries(locks).scale(1, 1, 0.7);
-    earGeo.computeBoundingSphere();
-    ear.add(mesh(earGeo, C.ear));
+    const ear = pivot('ear', side * 0.22, 0.11, -0.02);
+    ear.add(mesh(fluffy(0.115, { w: 22, h: 16, amp: 0.1, freq: 10, seed: 37 + side,
+      shape: (v, n) => v.multiplyScalar(1 + 0.12 * smooth(-n.y, 0.3, 1)) }), // (wispier, fuller at the tips)
+    C.ear, { x: side * 0.055, y: -0.12, rz: side * 0.28, sx: 0.66, sy: 1.45, sz: 0.95, extra: FUR_SOFT }));
     head.add(ear);
     ears.push(ear);
   }
 
-  root.userData.rig = { body, hips, torso, neck, head, legs, arms, hand, hammer, gun, shield, herb, vine, tail, ears, eyes, bow };
+  root.userData.rig = { body, hips, torso, neck, head, legs, arms, hand, hammer, gun, shield, herb, vine, tail, ears, eyes };
   addOutline(root, { thickness: 0.016, minSize: 0.05 });
   return root;
 }
@@ -288,8 +380,17 @@ export function createMaltese() {
 export function createMalteseAnimator(root) {
   const r = root.userData.rig;
   let phase = 0, time = 0, blink = 2, guard = 0;
-  const lerp = THREE.MathUtils.lerp;
+  const lerp = THREE.MathUtils.lerp, clamp = THREE.MathUtils.clamp;
   const ease = (k) => k * k * (3 - 2 * k);
+  // hair springs (secondary motion): each follows a signal of the pose late
+  // and overshoots a little; the hair bends by how far it lags behind
+  const springs = { lean: { x: 0, v: 0 }, head: { x: 0, v: 0 }, bob: { x: 0, v: 0 } };
+  const follow = (s, target, dt, k = 70, c = 7) => {
+    if (!(dt > 0)) { s.x = target; s.v = 0; return 0; } // (a pose held still: the hair at rest)
+    const n = Math.ceil(dt / 0.02), h = dt / n;
+    for (let i = 0; i < n; i++) { s.v += (k * (target - s.x) - c * s.v) * h; s.x += s.v * h; }
+    return clamp(s.x - target, -0.6, 0.6);
+  };
 
   return function animate(dt, { speed = 0, grounded = true, vy = 0, action = null, shield = false }) {
     time += dt;
@@ -313,10 +414,10 @@ export function createMalteseAnimator(root) {
     r.neck.rotation.set(-run * 0.14 + Math.sin(time * 1.7) * 0.03, 0, moving ? 0 : Math.sin(time * 0.6) * 0.08);
     r.head.rotation.set(0, 0, 0);
     r.tail.rotation.set(0, 0, Math.sin(time * (moving ? 18 : 8)) * 0.45);
-    // ears flop with every step and stream back when running
+    // the long ears hang, sway a little, stream back when running
     for (const [i, ear] of r.ears.entries()) {
       const side = i ? 1 : -1;
-      ear.rotation.set(Math.sin(time * 2.4 + i) * 0.05 - run * 0.55 + (moving ? (bob - 0.5) * 0.25 : 0), 0, side * (0.12 + (moving ? bob * 0.12 : 0)));
+      ear.rotation.set(Math.sin(time * 1.6 + i) * 0.03 + run * 0.3, 0, side * (moving ? 0.03 + bob * 0.06 : 0));
     }
     r.gun.visible = false;
     r.herb.visible = false;
@@ -337,7 +438,7 @@ export function createMalteseAnimator(root) {
       r.body.position.y -= 0.03 * g;
       r.neck.rotation.x -= 0.1 * g;
       r.shield.scale.setScalar(SHIELD_HELD * (0.4 + 0.6 * g)); // a big toy shield: it must read from the camera
-      for (const ear of r.ears) ear.rotation.x -= 0.25 * g;
+      for (const ear of r.ears) ear.rotation.x -= 0.1 * g;
     }
 
     if (!grounded) {
@@ -363,7 +464,7 @@ export function createMalteseAnimator(root) {
           r.arms.L.rotation.set(a * 0.9, 0, 0.1);
           r.hammer.rotation.set(Math.PI, 0, 0);
           r.torso.rotation.x = k < 0.35 ? -0.25 : 0.35;
-          for (const ear of r.ears) ear.rotation.x = k < 0.35 ? 0.3 : -0.5;
+          for (const ear of r.ears) ear.rotation.x = k < 0.35 ? 0.2 : -0.25;
           break;
         }
         case 'shoot': { // the water gun out in the left paw, a little kick back
@@ -385,7 +486,7 @@ export function createMalteseAnimator(root) {
           r.arms.R.rotation.set(-0.3, 0, -0.3);
           r.torso.rotation.set(k < rel ? -0.1 * back : 0.2 * arc + 0.05, k < rel ? 0.45 * back : lerp(0.45, -0.3, fling), 0);
           r.neck.rotation.set(0, k < rel ? -0.35 * back : 0.15, 0);
-          for (const ear of r.ears) ear.rotation.x = k < rel ? 0.25 : -0.45;
+          for (const ear of r.ears) ear.rotation.x = k < rel ? 0.15 : -0.2;
           break;
         }
         case 'eat': { // the herb held up before the chest, head bowed to it, munch munch, gone
@@ -399,7 +500,7 @@ export function createMalteseAnimator(root) {
           r.neck.rotation.set(0.12 * up + chew * 0.1, 0, 0); // a small nod: a deep bow hides the herb
           r.head.rotation.z = Math.sin(k * Math.PI * 4.5) * 0.06;
           r.tail.rotation.z = Math.sin(time * 22) * 0.6;
-          for (const ear of r.ears) ear.rotation.x = 0.1 + chew * 0.15;
+          for (const ear of r.ears) ear.rotation.x = 0.05 + chew * 0.08;
           closed = k > 0.25 && k < 0.85 && chew > 0.6; // happy blinks while chewing
           break;
         }
@@ -414,7 +515,7 @@ export function createMalteseAnimator(root) {
           r.legs.L.rotation.x = r.legs.R.rotation.x = -1.6;
           r.arms.L.rotation.x = r.arms.R.rotation.x = -1.5;
           r.neck.rotation.x = 0.5;
-          for (const ear of r.ears) ear.rotation.x = -0.9;
+          for (const ear of r.ears) ear.rotation.x = 0.5; // (tucked back)
           closed = true;
           break;
         }
@@ -422,14 +523,14 @@ export function createMalteseAnimator(root) {
           const s = Math.sin(k * Math.PI * 4);
           r.neck.rotation.x = -0.4 + s * 0.2;
           r.body.position.y += Math.max(0, s) * 0.05;
-          for (const ear of r.ears) ear.rotation.x = -0.5;
+          for (const ear of r.ears) ear.rotation.x = -0.15;
           break;
         }
         case 'sniff': { // nose to the ground, sweeping side to side
           r.torso.rotation.x = 0.6;
           r.neck.rotation.set(0.55 + Math.sin(time * 22) * 0.04, Math.sin(time * 4) * 0.45, 0);
           r.tail.rotation.z = Math.sin(time * 25) * 0.6;
-          for (const ear of r.ears) ear.rotation.x = 0.35;
+          for (const ear of r.ears) ear.rotation.x = 0;
           break;
         }
         case 'hurt': {
@@ -437,7 +538,7 @@ export function createMalteseAnimator(root) {
           r.body.position.z = -0.1 * arc;
           r.arms.L.rotation.set(-1.0 * arc, 0, 0.6);
           r.arms.R.rotation.set(-1.0 * arc, 0, -0.6);
-          for (const ear of r.ears) ear.rotation.x = 0.7 * arc;
+          for (const ear of r.ears) ear.rotation.x = 0.35 * arc;
           closed = k < 0.7;
           break;
         }
@@ -449,7 +550,8 @@ export function createMalteseAnimator(root) {
           r.arms.L.rotation.set(-0.6 * f, 0, 0.6 * f);
           r.arms.R.rotation.set(-0.6 * f, 0, -0.2);
           r.tail.rotation.z = 0;
-          for (const ear of r.ears) ear.rotation.x = 0.4 * f;
+          for (const ear of r.ears) ear.rotation.x = 0.2 * f;
+          r.ears[0].rotation.z = 0.5 * f; // (the ear underneath lies along the cheek, not through the floor)
           closed = f > 0.5;
           break;
         }
@@ -475,12 +577,27 @@ export function createMalteseAnimator(root) {
           r.body.position.y += Math.abs(Math.sin(k * Math.PI * 3)) * 0.16;
           r.neck.rotation.x = -0.25;
           r.tail.rotation.z = Math.sin(time * 30) * 0.7;
-          for (const ear of r.ears) ear.rotation.x = -0.3 + Math.abs(Math.sin(k * Math.PI * 3)) * 0.5;
+          for (const ear of r.ears) ear.rotation.x = -0.1 + Math.abs(Math.sin(k * Math.PI * 3)) * 0.3;
           break;
         }
         default: break;
       }
     }
     for (const e of r.eyes) e.scale.y = closed ? 0.15 : 1;
+
+    // the ears and tail after the pose: the ears hang (half undoing the
+    // trunk's and the head's tilt), both lag behind every move on springs
+    const rolling = action?.name === 'roll';
+    const trunk = r.torso.rotation.x, headTilt = r.neck.rotation.x + r.head.rotation.x;
+    const lagH = follow(springs.head, trunk + headTilt, dt, 55, 5);
+    const lagZ = follow(springs.lean, r.body.rotation.z + r.torso.rotation.y * 0.5 + r.neck.rotation.z, dt, 50, 5);
+    const lagY = follow(springs.bob, r.body.position.y, dt, 120, 9);
+    const hang = rolling ? 0.3 : 1;
+    for (const [i, ear] of r.ears.entries()) {
+      const side = i ? 1 : -1;
+      ear.rotation.x = clamp(ear.rotation.x - 0.5 * (trunk + headTilt) * hang + lagH * 0.8, -0.5, 0.5);
+      ear.rotation.z = clamp(ear.rotation.z + lagZ * 0.5 + side * Math.min(0.12, Math.abs(lagY) * 0.8), -0.6, 0.6);
+    }
+    r.tail.rotation.x = clamp(-lagY * 2, -0.3, 0.3);
   };
 }

@@ -143,7 +143,7 @@ async function botStep({ goal = null } = {}) {
   const dz = danger();
   // W3: a deer's lane at the hero, the shield in the bag and ready: stand and
   // block it (its antlers stick fast) instead of getting out of the way
-  if (dz && dz.h.kind === 'deer' && dz.h.shape === 'lane' && G.run.owned.includes('shield') && G.shield.cooldown <= 0 && !s.action && dz.t < 0.55) {
+  if (dz && dz.h.kind === 'deer' && dz.h.shape === 'lane' && G.run.owned.includes('shield') && !s.action && dz.t < 0.55) {
     const e = G.enemies.find((q) => q.kind === 'deer' && (q.state === 'windup' || q.state === 'attack') && flat(q.pos, pp) < 14);
     if (e) {
       G.pointer?.cancel();
@@ -153,7 +153,7 @@ async function botStep({ goal = null } = {}) {
       keyUp('Digit3');
     }
   }
-  if (dz && !(dz.h.kind === 'deer' && dz.h.shape === 'lane' && G.run.owned.includes('shield') && G.shield.cooldown <= 0 && dz.t >= 0.55 && !s.action)) {
+  if (dz && !(dz.h.kind === 'deer' && dz.h.shape === 'lane' && G.run.owned.includes('shield') && dz.t >= 0.55 && !s.action)) {
     // a bite's cone: roll a little earlier (the water tank is often low in the mushroom cave)
     const late = dz.ring ? dz.t < 0.2 : dz.t < (dz.h.shape === 'cone' && dz.h.r < 3 ? 0.45 : 0.32);
     if (late) {

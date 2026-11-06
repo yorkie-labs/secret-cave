@@ -22,7 +22,6 @@ import { createSpring } from '../entities/spring.js';
 import { createMerchant } from '../entities/bat.js';
 import { dropNecklace, createGlyphWall } from '../entities/necklace.js';
 import { createRabbitChief } from '../entities/bosses/rabbitChief.js';
-import { signOf } from './gates.js';
 import { BOSSES } from '../data/bosses.js';
 import { START } from '../data/items.js';
 import { beatBoss, save, openGate, findCamp, keepBag, restoreBag, heartDoorReady } from '../core/state.js';
@@ -190,10 +189,6 @@ export function createExpedition(G, def) {
   }
   G.addLight({ pos: V(C.at, campY + 5), color: '#ffd9a0', intensity: 16, distance: 24 });
   {
-    const sign = signOf({ icon: '🔥', name: '캠프' });
-    const b = world.bridges.find((q) => q.id === 'viaduct')?.b ?? C.at;
-    sign.position.set(b[0] + (C.at[0] - b[0]) * 0.25, campY + 3.6, b[1] + (C.at[1] - b[1]) * 0.25);
-    G.scene.add(sign);
     // the balcony: look down into the pit
     G.addInteractable({
       pos: V(C.balcony, campY), radius: 3.5, name: '전망대', kind: 'balcony', label: '🔭 저 아래를 내려다보기',

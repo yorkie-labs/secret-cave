@@ -4,8 +4,8 @@ import { newShield, raiseShield, lowerShield, stepShield, shieldBlocks } from '.
 import { sfx } from '../../audio/sound.js';
 import { textSprite } from '../../entities/enemy.js';
 
-// The shield (GDD §6.3): up while 3 is held, `hold` s at most, then
-// `cooldown` s (from release or timeout). It covers the front `arc` degrees:
+// The shield (GDD §6.3): up while 3 (or the touch button) is held, for as
+// long as it is held, and up again at once. It covers the front `arc` degrees:
 // a bite from there does nothing but clang and throw sparks, and bounces the
 // animal back. The hero walks slowly behind it (data: `slow`) and keeps
 // facing the cursor (on a touch screen, the nearest animal).
@@ -23,7 +23,7 @@ export function createShieldItem(G) {
 
   function raise() {
     if (!owned()) { G.toast('방패는 아직 없어요. 보물 상자를 찾아봐요!'); return false; }
-    if (sh.cooldown > 0 || G.fainted) return false;
+    if (G.fainted) return false;
     const a = G.player.state.action?.name;
     if (a && a !== 'hurt') return false; // mid-swing, mid-roll: not now
     if (!raiseShield(sh)) return false;
@@ -34,7 +34,7 @@ export function createShieldItem(G) {
     return true;
   }
   function lower() {
-    if (!lowerShield(sh, def)) return false;
+    if (!lowerShield(sh)) return false;
     setUp(false);
     G.emit('shieldDown');
     return true;
@@ -80,7 +80,7 @@ export function createShieldItem(G) {
 
   G.onUpdate((dt) => {
     if (G.ticking()) {
-      if (stepShield(sh, dt, def) === 'timeout') { setUp(false); G.emit('shieldDown'); }
+      stepShield(sh, dt);
       if (sh.up) {
         if (G.touch) {
           const pp = G.player.position;
@@ -122,8 +122,6 @@ export function createShieldItem(G) {
     raise, lower, blocks, block, lastBlock: null,
     get up() { return sh.up; },
     get state() { return sh; },
-    get cooldown() { return sh.cooldown / def.cooldown; }, // 0..1 still to wait
-    get holdLeft() { return sh.up ? Math.max(0, 1 - sh.t / def.hold) : 0; },
-    reset() { sh.up = false; sh.t = 0; sh.cooldown = 0; setUp(false); },
+    reset() { sh.up = false; sh.t = 0; setUp(false); },
   };
 }

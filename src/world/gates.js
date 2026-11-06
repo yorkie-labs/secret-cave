@@ -146,17 +146,16 @@ function createGate(G, world, nav, def, { open, locked }) {
   const solid = () => G.physics.addCuboid(def.at[0], y + 1.5, def.at[1], def.width / 2 + 0.2, 1.6, 0.6, yaw);
   let body = open ? null : solid();
 
-  // the sign over it: what is behind
-  const sprite = def.sign && !def.hidden ? signOf(def.sign) : null;
-  const signAt = at.clone().setY(y + 3.3);
-  if (sprite) { sprite.position.copy(signAt); sprite.scale.multiplyScalar(1.15); G.scene.add(sprite); }
+  // (no name sign over it any more: a place's name comes up as a card on
+  // entering it and fades, expedition.js; `def.sign` names the gate on the
+  // map and its interactable, user feedback 2026-11-06)
   const soon = (def.kind === 'soon' || def.kind === 'crystal') && !def.hidden && !def.secret ? textSprite('🚧', 1.0) : null;
   if (soon && def.kind === 'soon') { soon.position.copy(at).setY(y + 1.9); G.scene.add(soon); }
   const cold = def.kind === 'ice' || def.kind === 'frost';
   const light = G.addLight({ pos: at.clone().setY(y + 2.4), color: def.kind === 'crystal' ? '#c9a8ff' : cold ? '#9fdcff' : '#ffe3a0', intensity: def.hidden ? 0 : def.secret ? 0.6 : def.kind === 'crystal' ? 5 : cold ? 4 : 3, distance: 8 });
 
   const g = {
-    id: def.id, def, kind: def.kind, open, opening: -1, closing: -1, glowing: -1, root, sprite, at, y,
+    id: def.id, def, kind: def.kind, open, opening: -1, closing: -1, glowing: -1, root, at, y,
     get pos() { return at.clone(); },
   };
   g.glow = () => { if (shine && g.glowing < 0) { g.glowing = 0; sfx.necklace?.(); } };
@@ -264,7 +263,6 @@ function createGate(G, world, nav, def, { open, locked }) {
     }
     for (let i = flying.length - 1; i >= 0; i--) if (flying[i].done) flying.splice(i, 1);
     if (ice && !g.open && g.opening < 0) for (const p of parts) if (p.userData.shake !== undefined) { p.userData.bx ??= p.position.x; p.userData.shake = Math.max(0, p.userData.shake - dt); p.position.x = p.userData.bx + Math.sin(G.time * 70 + p.userData.i) * 0.05 * Math.min(1, p.userData.shake * 6); }
-    if (sprite) { sprite.position.y = signAt.y + Math.sin(G.time * 2 + at.x) * 0.08; sprite.material.opacity = g.open ? 1 : 0.85; }
     if (soon?.visible) soon.position.y = y + 1.9 + Math.sin(G.time * 3) * 0.05;
     if (spark) { spark.visible = !g.open; spark.position.y = y + 3.2 + Math.sin(G.time * 2.5) * 0.15; }
     if (g.glowing >= 0 && shine) {
@@ -296,37 +294,4 @@ function createGate(G, world, nav, def, { open, locked }) {
     if (k >= 1) finish();
   });
   return g;
-}
-
-// "⚔️ 전투" on a soft dark plate, always facing the lens.
-const signCache = new Map();
-export function signOf({ icon, name }) {
-  const key = icon + name;
-  if (!signCache.has(key)) {
-    const c = document.createElement('canvas');
-    c.width = 256; c.height = 128;
-    const ctx = c.getContext('2d');
-    ctx.fillStyle = 'rgba(20, 14, 34, 0.78)';
-    ctx.strokeStyle = 'rgba(255, 225, 140, 0.9)';
-    ctx.lineWidth = 6;
-    const r = 30;
-    ctx.beginPath();
-    ctx.roundRect(8, 8, 240, 112, r);
-    ctx.fill(); ctx.stroke();
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = '58px sans-serif';
-    ctx.fillText(icon, 70, 66);
-    ctx.font = 'bold 50px Jua, sans-serif';
-    ctx.fillStyle = '#ffe9a8';
-    ctx.fillText(name, 170, 68);
-    const tex = new THREE.CanvasTexture(c);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    signCache.set(key, tex);
-  }
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: signCache.get(key), transparent: true, depthTest: false, fog: false }));
-  s.scale.set(2.4, 1.2, 1);
-  s.renderOrder = 8;
-  s.name = 'doorSign';
-  s.userData.sign = { icon, name };
-  return s;
 }

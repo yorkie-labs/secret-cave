@@ -27,7 +27,7 @@ const MAKE = {
     g.add(mesh(new THREE.CylinderGeometry(0.15, 0.17, 0.15, 12), '#c9a96b', { y: 0.08 }));
     g.add(mesh(new THREE.CylinderGeometry(0.172, 0.172, 0.04, 12), '#6e4526', { y: 0.03 }));
     g.add(mesh(new THREE.ConeGeometry(0.035, 0.12, 4), '#ff7eb3', { x: 0.15, y: 0.1, z: -0.04, rz: -0.6, e: 0.4 })); // a pink feather
-    g.position.set(0, 0.31, -0.01);
+    g.position.set(0, 0.25, -0.01); // (on the smooth puppy-cut head, 2026-11-06)
     g.rotation.x = -0.12;
     return g;
   },
@@ -46,7 +46,7 @@ const MAKE = {
       f.position.set(Math.cos(a) * 0.19, 0.015, Math.sin(a) * 0.19);
       g.add(f);
     }
-    g.position.set(0, 0.2, 0);
+    g.position.set(0, 0.17, 0); // (resting on the head's fur)
     g.rotation.x = -0.18;
     return g;
   },
@@ -96,7 +96,5 @@ export function applyWear(model, wear = {}) {
     else ['L', 'R'].forEach((k, i) => (rig.legs[k].getObjectByName('foot') ?? rig.legs[k]).add(parts[i]));
     on[slot] = { id: want, parts };
   }
-  // the pink bow hides under a hat (the flower crown keeps it)
-  if (rig.bow) rig.bow.visible = on.head?.id !== 'hat';
   return on;
 }

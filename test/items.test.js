@@ -96,7 +96,7 @@ describe('the vine (GDD §3.2, §6.3, §6.6)', () => {
   });
 });
 
-describe('the shield (GDD §6.3: front 120°, 2 s hold, 4 s cooldown)', () => {
+describe('the shield (GDD §6.3: front 120°, held as long as 3 is, no cooldown)', () => {
   it('covers the front, not the back or the sides', () => {
     // the hero at the origin facing +Z (heading 0)
     expect(inFront(0, 0, 0, 0, 2)).toBe(true); // straight ahead
@@ -110,28 +110,22 @@ describe('the shield (GDD §6.3: front 120°, 2 s hold, 4 s cooldown)', () => {
     expect(shieldBlocks(sh, 0, 0, 0, 0, 2)).toBe(true);
     expect(shieldBlocks(sh, 0, 0, 0, 0, -2)).toBe(false);
   });
-  it('drops after 2 s of holding, then waits 4 s', () => {
+  it('stays up as long as it is held (no time limit)', () => {
     const sh = newShield();
     expect(raiseShield(sh)).toBe(true);
-    const steps = (n) => { let ev = null; for (let i = 0; i < n; i++) ev = stepShield(sh, 0.05) ?? ev; return ev; };
-    expect(steps(39)).toBe(null); // 1.95 s
+    for (let i = 0; i < 600; i++) stepShield(sh, 0.05); // 30 s
     expect(sh.up).toBe(true);
-    expect(steps(2)).toBe('timeout'); // 2.05 s
-    expect(sh.up).toBe(false);
-    expect(sh.cooldown).toBeCloseTo(4, 1);
-    expect(raiseShield(sh)).toBe(false); // still cooling down
-    steps(78); // 3.9 s
-    expect(raiseShield(sh)).toBe(false);
-    steps(3);
-    expect(raiseShield(sh)).toBe(true);
+    expect(sh.t).toBeCloseTo(30, 5);
+    expect(ITEMS.shield.hold).toBeUndefined();
   });
-  it('the cooldown starts on release', () => {
+  it('comes up again at once after letting go (no cooldown)', () => {
     const sh = newShield();
     raiseShield(sh);
     stepShield(sh, 0.5);
     expect(lowerShield(sh)).toBe(true);
-    expect(sh.cooldown).toBe(ITEMS.shield.cooldown);
-    expect(lowerShield(sh)).toBe(false);
+    expect(lowerShield(sh)).toBe(false); // (already down)
+    expect(raiseShield(sh)).toBe(true);
+    expect(ITEMS.shield.cooldown).toBeUndefined();
   });
 });
 

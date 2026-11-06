@@ -11,7 +11,7 @@ export function addOutline(root, { thickness = 0.025, minSize = 0.06 } = {}) {
   for (const m of meshes) {
     if (!m.geometry.boundingSphere) m.geometry.computeBoundingSphere();
     const r = m.geometry.boundingSphere.radius;
-    if (r < minSize || m.material.transparent) continue;
+    if (r < minSize || m.material.transparent || m.userData.noOutline) continue; // (noOutline: decals, e.g. the hero's eyes)
     const hull = new THREE.Mesh(m.geometry, outlineMat);
     hull.userData.isOutline = true;
     hull.castShadow = false;

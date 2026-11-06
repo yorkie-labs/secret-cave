@@ -2,6 +2,7 @@
 
 | Date | Task | Todo | Lessons |
 |------|------|------|---------|
+| 2026-11-06 | 몰티즈 룩 (퍼피컷) · 문 이름판 없애기 · 방패 쿨타임 없애기 | [todo](20261106-maltese-look-todo.md) | [lessons](20261101-secret-cave-gdd-lessons.md) |
 | 2026-11-05 | 출시 준비 | [todo](20261105-release-prep-todo.md) | [lessons](20261101-secret-cave-gdd-lessons.md) |
 | 2026-11-05 | README 작업 기록 (옮김) | [log](20261105-readme-status-log.md) | [lessons](20261101-secret-cave-gdd-lessons.md) |
 | 2026-11-05 | 부드러운 룩 (wild-island 적용) | [todo](20261105-cozy-look-todo.md) | [lessons](20261101-secret-cave-gdd-lessons.md) |

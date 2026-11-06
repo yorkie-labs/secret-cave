@@ -5,9 +5,9 @@
 // GAME_URL='http://localhost:5191/?world=test&seed=3'.
 // The starting bag (hammer, water gun; no shield, no herbs) → 3 without a
 // shield does nothing → walk over a shield → hold 3 facing a wolf (spawned
-// with G.spawnEnemy): the bite clangs off, no damage; let go: 4 s cooldown,
-// the slot sweeps → from behind it still bites → behind the shield the hero
-// walks at half speed, the hold runs out after 2 s → walk over the vine → Q
+// with G.spawnEnemy): the bite clangs off, no damage; let go and 3 again:
+// up at once (no cooldown, no sweep) → from behind it still bites → behind
+// the shield the hero walks at half speed, held 4 s it stays up → walk over the vine → Q
 // cycles water gun ↔ vine → a dry wolf is bound ~3 s, 8 s cooldown → water,
 // then the vine: ~5 s → a bound wolf is hammered to sleep → herbs: the belt
 // takes 3 ("pouch full"), 4 at full hearts says so, eat (1 s) → +2 hearts,
@@ -81,17 +81,14 @@ await shot('w7-items-shield-block');
 const bite = last('enemyBite');
 check('a bite into the raised shield is blocked: no damage', !!bite && bite.blocked && !bite.hurt && G.run.hearts === hearts0 && count('hurt') === hurts0, JSON.stringify(bite), G.run.hearts);
 check('…clang and sparks', count('shieldBlock') >= 1);
-// let go: 4 s cooldown from release
+// let go: down; 3 again: up at once (no cooldown since 2026-11-06)
 key('Digit3', 'keyup');
 await wait(50);
-check('let go: the shield comes down, 4 s cooldown starts', !G.shield.up && !P.state.shield && G.shield.state.cooldown > 3.8, r2(G.shield.state.cooldown));
+check('let go: the shield comes down', !G.shield.up && !P.state.shield);
 key('Digit3'); await wait(50);
-check('…3 again during the cooldown does nothing (the slot shows the sweep)', !G.shield.up && Number($('slot-3').querySelector('.cd').dataset.p) > 0.8, $('slot-3').querySelector('.cd').dataset.p);
+check('…3 again: it is up at once (no cooldown, no sweep on the slot)', G.shield.up && P.state.shield && !(Number($('slot-3').querySelector('.cd')?.dataset.p) > 0), $('slot-3').querySelector('.cd')?.dataset.p);
 key('Digit3', 'keyup');
 freeze();
-const cd0 = G.time;
-await until(() => G.shield.state.cooldown === 0, 5000);
-check('…the cooldown is 4 s', Math.abs(G.time - cd0 - 3.9) < 0.3, r2(G.time - cd0 + 0.1) + ' s');
 // from behind it does not help
 P.state.invulnerable = 0;
 await go(w1.pos.x - 1.6, w1.pos.z); // (in reach: the next bite is sure to land)
@@ -105,7 +102,7 @@ await until(() => count('enemyBite') && last('enemyBite').t > G.time - 0.05, 300
 await wait(60);
 const bite2 = last('enemyBite');
 check('a bite from behind the shield still lands', G.shield.up && bite2.inside && !bite2.blocked && count('hurt') === hurtsB + 1, JSON.stringify(bite2), G.run.hearts);
-// hold too long: it drops after 2 s by itself (walking meanwhile: slowly)
+// held long: it stays up (walking meanwhile: slowly)
 freeze();
 const upAt = last('shieldUp')?.t;
 await wait(100);
@@ -114,10 +111,10 @@ await wait(400);
 const slowSpeed = P.state.speed;
 // (a click-walk runs at 6 m/s; behind the shield only a walk, at half the 4 m/s walk)
 check('behind the shield the hero walks at half speed (2 m/s, not the 6 m/s click run)', P.state.shield && slowSpeed > 1.8 && slowSpeed <= 2.05 && walkSpeed > 3.9, r2(slowSpeed), 'm/s, without the shield', r2(walkSpeed));
-await until(() => !G.shield.up, 3000);
-check('held past 2 s: the shield drops by itself', !G.shield.up && G.time - upAt >= 1.9 && G.time - upAt <= 2.25, r2(G.time - upAt) + ' s');
-key('Digit3', 'keyup');
-check('…and the cooldown runs from the timeout', G.shield.state.cooldown > 3.5, r2(G.shield.state.cooldown));
+await until(() => G.time - upAt > 4, 6000);
+check('held 4 s: the shield is still up (no time limit)', G.shield.up && P.state.shield && G.time - upAt > 3.9, r2(G.time - upAt) + ' s');
+key('Digit3', 'keyup'); await wait(50);
+check('…and comes down when let go', !G.shield.up);
 G.run.hearts = 5; G.hud.update(G.run);
 
 // --- 3. the vine on the floor

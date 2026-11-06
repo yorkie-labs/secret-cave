@@ -1,6 +1,6 @@
 // What the hero carries this run and the item rules that are plain maths
 // (GDD §6.2, §6.3): the right-click tools and Q, the vine's bind time, the
-// shield's hold and cooldown and its front arc, herbs. No three.js here, so
+// shield (held up, its front arc), herbs. No three.js here, so
 // all of it is unit-tested (test/items.test.js).
 import { ITEMS } from '../data/items.js';
 import { inCone, armorHearts, betterArmor } from './hits.js';
@@ -51,26 +51,23 @@ export function grant(run, item, count = 1, { grade = 'common', target = null } 
 export const isWet = (wetUntil, now) => now < wetUntil;
 export const bindTime = (wetUntil, now, def = ITEMS.vine) => (isWet(wetUntil, now) ? def.bindWet : def.bind);
 
-// The shield (GDD §6.3): raised while 3 is held, `hold` s at most, then
-// `cooldown` s before it can come up again (counted from release or timeout).
-export const newShield = () => ({ up: false, t: 0, cooldown: 0 });
+// The shield (GDD §6.3): up for as long as 3 is held, down when let go,
+// and up again at once: no time limit, no cooldown (2026-11-06; the cost is
+// the slow walk and no other actions while it is up). `t`: how long it has
+// been up.
+export const newShield = () => ({ up: false, t: 0 });
 export function raiseShield(sh) {
-  if (sh.up || sh.cooldown > 0) return false;
+  if (sh.up) return false;
   sh.up = true; sh.t = 0;
   return true;
 }
-export function lowerShield(sh, def = ITEMS.shield) {
+export function lowerShield(sh) {
   if (!sh.up) return false;
-  sh.up = false; sh.cooldown = def.cooldown;
+  sh.up = false;
   return true;
 }
-// One step; returns 'timeout' when the hold runs out this step.
-export function stepShield(sh, dt, def = ITEMS.shield) {
-  if (sh.up) {
-    sh.t += dt;
-    if (sh.t >= def.hold) { lowerShield(sh, def); return 'timeout'; }
-  } else sh.cooldown = Math.max(0, sh.cooldown - dt);
-  return null;
+export function stepShield(sh, dt) {
+  if (sh.up) sh.t += dt;
 }
 // Does a shield raised at (x, z), facing `heading`, cover an attack coming
 // from (fx, fz)? Only the front `arc` degrees.

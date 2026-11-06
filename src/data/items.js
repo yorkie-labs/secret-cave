@@ -41,7 +41,7 @@ export const ITEMS = {
     got: '탈을 얻었어요! Q로 바꾸고 우클릭으로 써요 (동물인 척!)',
   },
   shield: {
-    slot: 'key3', name: '방패', icon: '🛡️', arc: 120, hold: 2, cooldown: 4, // cooldown from release or timeout
+    slot: 'key3', name: '방패', icon: '🛡️', arc: 120, // up as long as 3 is held, no cooldown (user feedback 2026-11-06)
     slow: 0.5, // × walking speed while it is up
     bounce: 1.2, // m a blocked animal is pushed back
     got: '방패를 얻었어요! 3을 누르고 있으면 앞을 막아요',

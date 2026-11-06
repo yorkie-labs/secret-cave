@@ -198,7 +198,7 @@ async function boot() {
   // the HUD's cooldown sweeps, every frame (cheap: only changed styles are set)
   G.onUpdate(() => hud.cooldowns({
     tool: G.tools[run.tool]?.cooldown ?? 0,
-    shield: G.shield.cooldown, shieldUp: G.shield.up, shieldHold: G.shield.holdLeft,
+    shieldUp: G.shield.up,
   }));
   // the hero's silhouette through pillars in the top-down view
   const heroGhost = addSilhouette(G.player.model, '#7fe3ff');
