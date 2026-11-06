@@ -11,6 +11,10 @@ import { ALTAR, ALTAR_BY_ID, BASE_HEARTS } from '../data/unlocks.js';
 import { ITEMS } from '../data/items.js';
 import { addStars } from './state.js';
 
+// Every star ever earned: the ones still in hand and the ones spent at the
+// star altar (the ending counts them, ui/ending.js; the result's 모은 별).
+export const starsEarned = (s) => (s.stars ?? 0) + Object.keys(s.unlocks ?? {}).filter((id) => s.unlocks[id]).reduce((t, id) => t + (ALTAR_BY_ID[id]?.cost ?? 0), 0);
+
 // ---- the star altar
 // { ok, reason }: 'gone' (no such unlock), 'owned', 'needs' (another first),
 // 'stars' (not enough)

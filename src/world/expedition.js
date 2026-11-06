@@ -13,7 +13,8 @@ import { resetGrades } from '../combat/grades.js';
 import { refillArmor } from '../combat/loadout.js';
 import { createMushroomQueen } from '../entities/bosses/mushroomQueen.js';
 import { softGlowTexture } from './glow.js';
-import { place, whenLoaded, allSettled, prioritizeRegion } from './models.js';
+import { place, whenLoaded, allSettled, prioritizeRegion, prefetch } from './models.js';
+import { ENDING_MODELS } from '../ui/introModels.js';
 import { spawnEnemy, modelsOfKinds } from './spawn.js';
 import { rollClearDrop } from '../core/loot.js';
 import { createChest, dropLoot } from '../entities/chest.js';
@@ -529,10 +530,12 @@ export function createExpedition(G, def) {
   function startEscape() {
     if (!x.heart || x.ended) return;
     x.escaping = true;
+    prefetch(ENDING_MODELS, 2, { keep: false }); // (the ending's forest set, while the hero runs: ui/ending.js)
     x.heart.startEscape({ seed: subSeed(x.seed, 7700) });
     G.hud.card('<h2>☀️ 탈출!</h2><p>수정 다리를 건너 햇빛을 향해 달려요!<br>떨어지는 바위는 빨간 원을 보고 피해요</p>', 3200);
   }
   x.startEscape = startEscape;
+  x.kingDown = kingDown; // (checks: the Crystal King asleep as if beaten, then the escape — w9-ending)
   x.spawnKing = spawnKing;
   // the sunlight at the tunnel's end: the ending (GDD §2.3)
   async function toSun() {
@@ -959,6 +962,7 @@ export function createExpedition(G, def) {
   x.afterEnding = () => {
     x.ended = false;
     x.escaping = false;
+    run.won = null; // (the next escape is a win of its own: world.won counts it, the result says "n번째 탈출")
     const home = V(C.at);
     G.player.teleport(home, Math.PI);
     G.cam?.snap(home);

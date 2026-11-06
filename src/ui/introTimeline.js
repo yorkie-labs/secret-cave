@@ -4,6 +4,7 @@
 // (test/intro.test.js); src/ui/intro.js plays it. Times are seconds from the
 // start. Everything on screen is a function of this one clock, so moving on
 // a line, or skipping, is just moving the clock.
+import { sceneIn, lineIn, advanceIn, cuesIn } from './timeline.js';
 
 export const INTRO_SCENES = [
   { id: 'forest', start: 0, end: 7 }, // 1. a sunny forest, the Maltese walking
@@ -51,52 +52,24 @@ export const INTRO_CUES = [
   { at: 37.7, cue: 'music:introBrave' }, { at: 37.8, cue: 'star' },
 ];
 
-export const TYPE_RATE = 22; // characters a second: a soft typewriter
+// (the shared rules: ui/timeline.js)
+export { TYPE_RATE, typedCount, typedAt, ramp } from './timeline.js';
 
 // The scene playing at time t (its index), clamped to the last.
-export function sceneAt(t) {
-  let i = 0;
-  while (i < INTRO_SCENES.length - 1 && t >= INTRO_SCENES[i].end) i++;
-  return i;
-}
+export const sceneAt = (t) => sceneIn(INTRO_SCENES, t);
 
 // The line on screen at time t (its index), or -1 between lines.
-export function lineAt(t, lines = INTRO_LINES) {
-  return lines.findIndex((l) => t >= l.at && t < l.end);
-}
-
-// How many characters of a line the typewriter shows at time t.
-export function typedCount(line, t) {
-  const n = [...line.text].length;
-  return Math.max(0, Math.min(n, Math.floor((t - line.at) * TYPE_RATE + 1e-9)));
-}
-
-// The time when a line is fully typed.
-export const typedAt = (line) => line.at + [...line.text].length / TYPE_RATE;
+export const lineAt = (t, lines = INTRO_LINES) => lineIn(lines, t);
 
 // A click or Space: a line still typing is finished at once; a typed line
 // (or a gap) jumps to the start of the next line; after the last line, to
 // the fade at the end. Returns the new time (never earlier than t).
-export function advance(t, lines = INTRO_LINES) {
-  const i = lineAt(t, lines);
-  if (i >= 0 && t < typedAt(lines[i]) - 1e-6) return typedAt(lines[i]);
-  const next = lines.find((l) => l.at > t + 1e-6);
-  return next ? next.at : Math.max(t, INTRO_LENGTH - FADE_OUT);
-}
+export const advance = (t, lines = INTRO_LINES) => advanceIn(t, lines, INTRO_LENGTH - FADE_OUT);
 
 // The cues between two times (t0, t1]. A jump forward (a click, Space)
 // plays only the cues of the last moment, not every sound skipped over;
 // a music cue is never lost (the latest one passed is kept).
-export function cuesBetween(t0, t1, cues = INTRO_CUES, stale = 0.35) {
-  const passed = cues.filter((c) => c.at > t0 && c.at <= t1);
-  if (t1 - t0 <= stale) return passed;
-  const music = passed.filter((c) => c.cue.startsWith('music:')).at(-1);
-  const fresh = passed.filter((c) => !c.cue.startsWith('music:') && c.at > t1 - stale);
-  return music ? [music, ...fresh] : fresh;
-}
+export const cuesBetween = (t0, t1, cues = INTRO_CUES, stale = 0.35) => cuesIn(t0, t1, cues, stale);
 
-// A smooth 0→1 between two times (for the 3D side: walks, fades, camera moves).
-export function ramp(t, a, b) {
-  const k = Math.min(1, Math.max(0, (t - a) / (b - a)));
-  return k * k * (3 - 2 * k);
-}
+// The whole schedule, for the player (ui/cutscene.js)
+export const INTRO_TIMELINE = { scenes: INTRO_SCENES, lines: INTRO_LINES, cues: INTRO_CUES, length: INTRO_LENGTH, fadeOut: FADE_OUT };

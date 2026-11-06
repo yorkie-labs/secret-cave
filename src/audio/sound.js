@@ -108,6 +108,10 @@ export const sfx = {
   chirp: () => [0, 0.09, 0.3, 0.38].forEach((d, i) => tone({ freq: 2600 + (i % 2) * 500, to: 3400 + (i % 2) * 300, type: 'sine', dur: 0.07, vol: 0.035, delay: d })),
   glimmer: () => [0, 5, 9, 12].forEach((st, i) => tone({ freq: 988 * 2 ** (st / 12), type: 'sine', dur: 0.7, vol: 0.05, attack: 0.08, delay: i * 0.12 })),
   twinkle: () => [0, 7].forEach((st, i) => tone({ freq: 1320 * 2 ** (st / 12), type: 'sine', dur: 0.5, vol: 0.04, attack: 0.05, delay: i * 0.16 })),
+  // the ending: a happy stretch in the sun (a little rising-falling "아우~"),
+  // the cave's purple glow going out (a soft falling shimmer)
+  yawn: () => { tone({ freq: 520, to: 760, type: 'sine', dur: 0.45, vol: 0.06, attack: 0.08 }); tone({ freq: 760, to: 430, type: 'sine', dur: 0.7, vol: 0.06, attack: 0.05, delay: 0.42 }); },
+  dim: () => [12, 9, 5, 0, -3].forEach((st, i) => tone({ freq: 880 * 2 ** (st / 12), type: 'sine', dur: 0.8, vol: 0.045, attack: 0.06, delay: i * 0.16 })),
   // W5: a combo, a star, a secret door's glimmer
   combo: () => [0, 4, 7, 11, 14].forEach((st, i) => tone({ freq: 659 * 2 ** (st / 12), type: 'triangle', dur: 0.22, vol: 0.1, delay: i * 0.05 })),
   star: () => [0, 7, 12, 16, 19, 24].forEach((st, i) => tone({ freq: 523 * 2 ** (st / 12), type: 'sine', dur: 0.5, vol: 0.1, delay: i * 0.07 })),
@@ -144,6 +148,11 @@ const MOODS = {
   introCave: { bpm: 72, scale: [0, 2, 3, 7, 8], root: 60, bass: [0, 8, 5, 7], lead: 'sine', leadVol: 0.06, density: 0.25, pad: 0.05 },
   introDark: { bpm: 60, scale: [0, 2, 3, 7, 10], root: 57, bass: [0, 3, 8, 7], lead: 'sine', leadVol: 0.05, density: 0.18, octave: 12, pad: 0.06, bell: true },
   introBrave: { bpm: 100, scale: [0, 2, 4, 7, 9], root: 62, bass: [0, 5, 7, 7], lead: 'triangle', leadVol: 0.07, density: 0.5, pad: 0.05, arp: [0, 1, 2, 3], arpVol: 0.035 },
+  // the ending cutscene (ui/ending.js): out in the sun, bright and free; the
+  // dark at the very end (THE END…?), a curious hush. `ending` itself is the
+  // calm credits theme (the sunset, the credits, the result screen)
+  endingFree: { bpm: 116, scale: [0, 2, 4, 7, 9], root: 67, bass: [0, 5, 9, 7], lead: 'triangle', leadVol: 0.075, density: 0.55, pad: 0.05, arp: [0, 1, 2, 3, 2, 1], arpVol: 0.035, kick: 8 },
+  endingTease: { bpm: 64, scale: [0, 2, 3, 7, 8], root: 62, bass: [0, 8], lead: 'sine', leadVol: 0.045, density: 0.2, octave: 12, pad: 0.05, bell: true },
   ending: { bpm: 88, scale: [0, 2, 4, 7, 9], root: 67, bass: [0, 7, 9, 5], lead: 'triangle', density: 0.5, pad: 0.07, arp: [0, 1, 2, 3], arpVol: 0.035 },
 };
 export const MUSIC_MOODS = Object.keys(MOODS);

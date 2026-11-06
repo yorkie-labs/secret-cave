@@ -335,10 +335,12 @@ const te = G.run.time;
 for (let k = 0; k < 8 && !sunlit; k++) await travel(V3(D.escape.sun[0], Y(-96), D.escape.sun[1]), { near: 2.5, ms: 30000 });
 legs.push(['the escape', +(G.run.time - te).toFixed(1)]);
 check('up the tunnel into the sunlight: the ending', await until(() => sunlit && G.mode === 'ending', 8000));
-await wait(2500);
+// (the ending cutscene, ui/ending.js: up, the first words in the sun, then 건너뛰기)
+// (the bot's travel() may run on a while after the sunlight: what it showed is in `seen`)
+check('the ending cutscene: into the light, then "멍멍! 드디어 탈출했다!" at the cave mouth in the sun', await until(() => G.outro?.ready && G.outro.seen.lines.includes(1), 30000) && G.outro.seen.scenes.slice(0, 2).join() === 'light,sunlight', G.outro?.seen.scenes.join(), G.outro?.seen.lines.join());
 await once('full-22-ending');
-await until(() => !$('btn-ending').disabled, 8000);
-$('btn-ending').click();
+$('intro-skip').click();
+check('…건너뛰기 ends it', await until(() => !G.outro.playing, 3000));
 check('the whole game\'s result', await until(() => !$('result').classList.contains('hidden'), 4000) && $('stat-bosses').textContent.includes('4/4'), $('result-stats').textContent.replace(/\s+/g, ' '));
 await wait(500); await once('full-23-result');
 $('btn-continue').click();

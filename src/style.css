@@ -367,23 +367,40 @@ body.intro-on #hud, body.intro-on #touch, body.intro-on #toast, body.intro-on #c
   #intro-skip { min-height: 36px; padding: 4px 14px; font-size: 14px; top: max(3px, calc(50% - 18px)); }
   #intro-line { font-size: clamp(15px, 4.6vh, 20px); }
 }
-#ending { background: radial-gradient(circle at 50% 22%, #fff7d6 0%, #ffd98a 18%, #6f8a5a 55%, #1f2a22 100%); gap: 8px; overflow-y: auto; justify-content: flex-start; padding-top: 4vh; }
-#ending-sun { font-size: 64px; animation: sunUp 2.4s ease-out; }
-@keyframes sunUp { from { transform: translateY(40px) scale(.7); opacity: 0; } }
-#ending h2 { margin: 0; font-size: clamp(32px, 6vw, 54px); color: #fff; text-shadow: 0 4px 0 #7a4a10, 0 0 20px rgba(255, 240, 180, .8); }
-#ending .line { margin: 0; font-size: 20px; color: #fffbe8; text-shadow: 0 2px 3px rgba(0,0,0,.5); }
-#ending-time, #ending-star { margin: 0; font-size: 18px; color: #fff3c4; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
-#ending h1 { margin: 8px 0 0; font-size: clamp(54px, 11vw, 96px); letter-spacing: 6px; color: #c9b8ff; -webkit-text-stroke: 3px #3a2466; paint-order: stroke fill; }
-#ending .soon { margin: 0; font-size: 22px; color: #ffe9a8; text-shadow: 0 2px 3px rgba(0,0,0,.6); }
-#ending-credits { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 22px; margin: 8px 0; font-size: 16px; text-shadow: 0 1px 3px rgba(0,0,0,.7); }
-#ending-credits small { display: block; font-size: 12px; opacity: .8; }
-#ending-credits a { color: inherit; text-decoration: underline dotted; }
-#ending .shard { margin: 6px 0; font-size: 15px; color: #e6dcff; opacity: .9; }
-#ending .shard i { font-style: normal; color: #c49bff; display: inline-block; animation: twinkle 1.4s ease-in-out infinite; text-shadow: 0 0 10px #b48cff; }
-@keyframes twinkle { 50% { opacity: .2; transform: scale(.6); } }
-#btn-ending:disabled { opacity: .45; cursor: default; }
-#fade.sun { background: #fffbea; transition: opacity 1.2s; }
-@media (max-height: 560px) { #ending-sun { font-size: 40px; } #ending h1 { font-size: 48px; } #ending .line { font-size: 16px; } }
+/* the ending (ui/ending.js): the daylight's white, the numbers of the save,
+   the credits rolling over the sunset, THE END…? in the middle of the picture */
+#intro-white { position: absolute; inset: 0; background: radial-gradient(circle at 50% 45%, #ffffff 0%, #fffaf0 55%, #fff1d2 100%); opacity: 0; pointer-events: none; }
+#intro-stats {
+  position: absolute; left: 0; right: 0; top: calc(var(--bar) + 12px); display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 6px 8px; padding: 0 16px; opacity: 0; transition: opacity .9s; pointer-events: none;
+}
+#intro-stats.on { opacity: 1; }
+#intro-stats span {
+  background: rgba(40, 26, 12, .4); color: #fff8ec; border-radius: 999px; padding: 4px 13px;
+  font-size: clamp(13px, min(1.7vw, 2.4vh), 18px); text-shadow: 0 1px 2px rgba(0, 0, 0, .6); white-space: nowrap;
+}
+#intro-stats i { font-style: normal; margin-right: 5px; }
+#intro-stats b { color: #ffe08a; font-weight: normal; }
+#intro-credits {
+  position: absolute; left: 0; right: 0; top: var(--bar); bottom: var(--bar); overflow: hidden; display: none; pointer-events: none;
+  text-align: center; color: #fff8ec; text-shadow: 0 2px 7px rgba(40, 10, 30, .8);
+  -webkit-mask-image: linear-gradient(transparent, #000 13%, #000 87%, transparent); mask-image: linear-gradient(transparent, #000 13%, #000 87%, transparent);
+}
+#intro-credits.on { display: block; }
+#intro-credits .roll { position: absolute; left: 0; right: 0; top: 0; padding: 0 16px; will-change: transform; }
+#intro-credits h2 { margin: 0 0 22px; font-size: clamp(32px, min(5vw, 8vh), 54px); letter-spacing: 3px; color: #ffe08a; font-weight: normal; }
+#intro-credits .row { margin: 0 0 18px; }
+#intro-credits small { display: block; font-size: clamp(13px, min(1.6vw, 2.4vh), 16px); opacity: .8; }
+#intro-credits b { font-weight: normal; font-size: clamp(18px, min(2.6vw, 4vh), 27px); }
+#intro-credits a { color: inherit; text-decoration: underline dotted; pointer-events: auto; }
+#intro-credits .thanks { margin: 30px 0 0; font-size: clamp(18px, min(2.4vw, 3.6vh), 25px); color: #ffe08a; }
+#intro-title {
+  position: absolute; left: 0; right: 0; top: 40%; transform: translateY(-50%); margin: 0; text-align: center; pointer-events: none;
+  font-size: clamp(42px, min(9vw, 13vh), 96px); letter-spacing: 4px; color: #e2d4ff;
+  text-shadow: 0 0 22px rgba(170, 120, 255, .85), 0 3px 0 #3a2466; transition: opacity .5s;
+}
+#intro-title.gone { opacity: 0; }
+#intro-title i { font-style: normal; visibility: hidden; }
 /* the boss plate takes the top: toasts and the hover plate go under it */
 body.boss #toast { top: 128px; }
 body.boss #hover-plate { top: 128px; }

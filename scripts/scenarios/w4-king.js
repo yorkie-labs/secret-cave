@@ -9,8 +9,9 @@
 // tired (his chest bare: the hammer ×2); three phases; asleep: a star, the
 // heart's light fades, the cave shakes, the crystal bridge forms, the hidden
 // way out opens and the escape runs (rocks: a red circle first; a soft
-// clock) up the tunnel into the sunlight → "멍멍! 드디어 탈출했다!", THE END,
-// the credits, the purple shard → the whole game's result → 계속 탐험하기:
+// clock) up the tunnel into the sunlight → the ending cutscene ("멍멍!
+// 드디어 탈출했다!", the credits, THE END…? over the purple shard; Space on
+// through it) → the whole game's result → 계속 탐험하기:
 // the camp again, the world open, the win saved; a new page offers 이어 하기.
 const X = G.expedition, W = G.world, D = W.def, S = G.state;
 // (W6: hand-written points are in the design frame; the layout squeezes them into the world)
@@ -113,12 +114,20 @@ await goTo(sun, 90000);
 check('up the tunnel into the sunlight: the ending', await until(() => ev.sunlight.length > 0 && G.mode === 'ending', 8000), `${(G.run.time - te).toFixed(1)} s of running`, pos());
 const rocks = ev.escapeRock.length, landed = ev.escapeRockLanded;
 check('rocks fell on the way, each shown by its circle first (≤ 1 hit)', rocks > 0 && landed.filter((r) => r.e.hurt).length <= 1, rocks, landed.filter((r) => r.e.hurt).length);
-await wait(2600);
-check('"멍멍! 드디어 탈출했다!", THE END, the credits, the purple shard', !$('ending').classList.contains('hidden') && $('ending').textContent.includes('드디어 탈출했다') && $('ending').textContent.includes('THE END') && $('ending-credits').textContent.includes('Jiyu') && $('ending').textContent.includes('보라색 조각'));
-check('…no "곧 열려요" on the big world\'s ending', document.querySelector('#ending .soon').classList.contains('hidden'));
+// (2026-11-07: the ending is a 3D cutscene, ui/ending.js; w9-ending.js checks it in full)
+check('the ending cutscene: its forest set up, the letterbox, 건너뛰기', await until(() => G.outro?.ready, 30000) && G.outro.playing && !$('intro').classList.contains('hidden') && $('intro-skip').textContent.includes('건너뛰기'));
+check('…"멍멍! 드디어 탈출했다!" at the cave mouth in the sun', await until(() => G.outro.scene === 'sunlight' && G.outro.text.includes('드디어 탈출했다'), 12000), G.outro.scene, G.outro.text);
 await once('w4k-12-ending');
-await until(() => !$('btn-ending').disabled, 6000);
-$('btn-ending').click();
+// on through it with Space: the cave's glow going out, what was gathered,
+// off into the sunset, the credits, the purple shard in the dark: THE END…?
+const keyTap = (code) => { dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true })); dispatchEvent(new KeyboardEvent('keyup', { code, bubbles: true })); };
+let credits = '', theEnd = '';
+for (let n = 0; n < 50 && G.outro.playing; n++) {
+  keyTap('Space'); await wait(300);
+  if (G.outro.scene === 'credits') credits ||= $('intro-credits').textContent;
+  if (G.outro.text.startsWith('THE END')) theEnd = G.outro.text;
+}
+check('…every scene, the credits (Jiyu), THE END…? over the purple shard', G.outro.seen.scenes.join() === 'light,sunlight,cave,gathered,setoff,credits,tease' && credits.includes('Jiyu') && theEnd === 'THE END…?', G.outro.seen.scenes.join(), theEnd);
 check('the whole game\'s result: time, stars, codex, bosses', await until(() => !$('result').classList.contains('hidden'), 4000) && !!$('stat-stars') && !!$('stat-codex') && $('stat-bosses').textContent.includes('4/4'), $('result-stats').textContent.replace(/\s+/g, ' '));
 check('…with 계속 탐험하기', !$('btn-continue').classList.contains('hidden') && $('btn-again').classList.contains('hidden'));
 await wait(500); await once('w4k-13-result');

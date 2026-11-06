@@ -45,8 +45,12 @@ the way opens down into the Mushroom Forest, where the Poison Mushroom Queen
 reigns, then the frozen Ice Lake and its Ice Bear. Under the camp lies the
 Crystal Heart, where the necklace opens the last doors and the Crystal King
 guards the purple crystal. Put him to sleep and its light fades, the cave
-shakes, and a hidden way leads up into the sunlight — but deep inside, one
-small purple shard still glimmers…
+shakes, and a hidden way leads up into the sunlight — out of the very cave
+mouth where it all began. The story is told in two short 3D cutscenes in
+the game's own renderer (the intro and the ending, each skippable): the
+ending shows the stars and treasures you really gathered rising into the
+sky before the Maltese sets off into the sunset — but deep inside, one
+small purple shard still glimmers… THE END…?
 
 ## Controls (Diablo-style)
 
@@ -117,7 +121,7 @@ separate sandbox save, so they never change a player's real save.
 - `src/entities/` — the Maltese, the animals, the bosses, the bat merchant
 - `src/combat/`, `src/data/` — combat maths, items, grades, combos; balance as data
 - `src/player/`, `src/systems/` — movement, camera, click-to-move and paths
-- `src/render/` — light, shadows, post-processing; `src/ui/` — HUD, menus, intro, ending; `src/audio/` — synthesised music and sound
+- `src/render/` — light, shadows, post-processing; `src/ui/` — HUD, menus, the intro and ending cutscenes (one player, one shared forest set); `src/audio/` — synthesised music and sound
 - `test/` — unit tests; `scripts/` — asset fetch, headless playtests
 - `docs/GDD.md` — the design document; `tasks/` — the development log (the earlier, longer README is in [tasks/20261105-readme-status-log.md](tasks/20261105-readme-status-log.md))
 

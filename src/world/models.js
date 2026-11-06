@@ -312,6 +312,8 @@ export function modelStatus() {
 export const modelsVersion = () => version;
 
 export const isLoaded = (key) => sources.has(idOf(key));
+/** true when the game itself keeps `key` (a cutscene's own models are let go after it). */
+export const isKept = (key) => !!jobs.get(idOf(key))?.keep;
 export const hasFailed = (key) => jobs.get(idOf(key))?.state === 'failed';
 // Let go of models no longer needed (ui/intro.js: its forest after the
 // intro); the game's own (`keep`) stay.

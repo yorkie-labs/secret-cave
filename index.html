@@ -92,27 +92,18 @@
       <div class="row"><button id="btn-continue" class="hidden">계속 탐험하기</button><button id="btn-again">다시 하기</button><button id="btn-same">같은 동굴 다시</button><button id="btn-title">처음 화면</button></div>
     </div>
 
-    <!-- the intro (GDD §2.1): a 3D cutscene in the game's renderer (ui/intro.js):
-         letterbox bars, the subtitle under the picture, 건너뛰기 -->
+    <!-- the cutscenes (GDD §2.1 the intro, §2.3 the ending): 3D in the game's
+         renderer (ui/cutscene.js): letterbox bars, the subtitle under the
+         picture, 건너뛰기; the ending's daylight, numbers, credits and title -->
     <div id="intro" class="hidden">
+      <div id="intro-white"></div>
+      <div id="intro-stats"></div>
+      <div id="intro-credits"></div>
+      <p id="intro-title" class="gone"></p>
       <div id="intro-black"></div>
-      <div class="bar top"><button id="intro-skip" aria-label="인트로 건너뛰기">건너뛰기 ▶▶</button></div>
+      <div class="bar top"><button id="intro-skip" aria-label="건너뛰기">건너뛰기 ▶▶</button></div>
       <div class="bar bottom"><p id="intro-line" class="gone"></p><span class="hint">클릭 · Space: 다음 · Esc: 건너뛰기</span></div>
       <div class="dots"><i></i><i></i><i></i></div>
-    </div>
-
-    <!-- M5: the ending (GDD §2.3, §15) -->
-    <div id="ending" class="screen hidden">
-      <div id="ending-sun">☀️</div>
-      <h2>멍멍! 드디어 탈출했다!</h2>
-      <p class="line">몰티즈는 거대한 동굴을 한 번 돌아보고, 새로운 모험을 찾아 떠나요.</p>
-      <p id="ending-time"></p>
-      <p id="ending-star" class="hidden">⭐ 거대 토끼 대장을 처음 물리쳤어요! 별 하나를 얻었어요</p>
-      <h1>THE END</h1>
-      <p class="soon">다음 동굴은 곧 열려요</p>
-      <div id="ending-credits"></div>
-      <p class="shard">…동굴 안쪽 깊은 곳에서, 작은 보라색 조각 하나가 반짝였어요. <i>✦</i></p>
-      <button id="btn-ending">결과 보기</button>
     </div>
 
     <!-- Tab: the cave map (what the hero has seen of the cave, the caverns visited, the fork signs) -->

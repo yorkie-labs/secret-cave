@@ -16,10 +16,28 @@
 7. 떡밥 — 어두운 동굴 안 작은 보라 조각이 반짝 → "THE END…?" → 결과 화면
 
 ## Todo
-- [ ] 성능 작업(20261107-perf-todo) 배포 뒤 시작 (같은 렌더 코드)
-- [ ] 장면 1~7, 기록 반영(별·수정 조각·시간), 엔딩 테마
-- [ ] 건너뛰기·이어 하기, 휴대폰, 자원 정리
-- [ ] 시나리오(w4-king 탈출 → 엔딩, full.js), 스크린샷
-- [ ] 따님과 정할 것: 장면 2의 첫 행동, 장면 5의 행선지, 크레딧 문구
+- [x] 성능 작업(20261107-perf-todo) 배포 뒤 시작 (같은 렌더 코드) — 8c66bf7 위에서
+- [x] 인트로 무대·플레이어를 함께 쓰게 나누기: `ui/timeline.js`(순수 규칙), `ui/cutscene.js`(플레이어), `ui/cutsceneSet.js`(숲·동굴 입구 무대), 인트로 회귀 없음(w8 다섯 가지 통과)
+- [x] 장면 1~7, 기록 반영(별·대장·수정 조각·시간), 엔딩 테마(`endingFree` → `ending` 크레딧 곡 → `endingTease`), 효과음 `yawn`·`dim`
+- [x] 건너뛰기·이어 하기, 휴대폰, 자원 정리
+- [x] 시나리오(w9-ending 새로, w4-king 탈출 → 엔딩, full.js), 스크린샷
+- [x] 문서: GDD §2.3(만든 그대로)·변경 기록·§14 #91~93·§15, README, CLAUDE.md, 교훈
+- [ ] 따님과 정할 것: 장면 2의 첫 행동(`ENDING_CHOICES.firstAction`: stretch / roll / shake 셋 다 만들어 둠), 장면 5의 행선지 문구, 크레딧 문구(`data/credits.js`)
+
+## 설계 (만든 그대로)
+- 입구는 그대로 `story.ending()`(`G.ending`, `expedition.js toSun`이 부름): 모드 `ending` → 탈출 저장(`G.winRun`, 건너뛰어도 남음) → 저장에서 수(`endingStats`) → `playEndingCutscene` → `G.victory()` → 결과 화면(계속 탐험하기 / 처음 화면). 옛 글자 엔딩 화면(`#ending`)과 CSS는 지움
+- 인트로와 함께 쓰는 것: 시간표 규칙(`timeline.js`: `advanceIn`에 자막 없는 멈춤 `stops`), 플레이어(`cutscene.js`: 레터박스·타자 자막·`title` 줄·건너뛰기·입력·`story.view`·`plain` 렌더·정리), 무대(`cutsceneSet.js`: 풀밭 고리·숲·언덕·동굴 입구·빛줄기·꽃가루·나비, `forestRnd()`로 인트로와 같은 숲). DOM은 `#intro` 하나(엔딩 때 `.ending`, 엔딩만의 `#intro-white`·`#intro-stats`·`#intro-credits`·`#intro-title`)
+- 시간표 `endingTimeline.js`: 장면 7개 0–4 / 4–11.5 / 11.5–18 / 18–27 / 27–33.5 / 33.5–44.5 / 44.5–50.5 s(50.5 s), 자막 9줄(각 ≥ 2.5 s), 크레딧·떡밥은 클릭이 멈추는 자리. 따님이 바꿀 것은 `ENDING_CHOICES`·`FIRST_ACTIONS`·`data/credits.js`
+- 무대 `ending.js`: 해는 숲 위(azimuth −72°), 하늘은 `look.setTime` 낮 → 금빛 → 노을; 메운 구멍; 동굴 입구 속 보라빛(장면 3에 깜빡이다 꺼짐); 땅 밑 터널(장면 1 하얀 출구, 장면 7 보라 조각); 몰티즈는 꾸미기 그대로 + 옆 가방; 수정 조각 3~12, 별 ≤ 14(대장마다 큰 별·대장 색 빛); 반딧불
+- 모델: `ENDING_MODELS`(인트로 숲 + 터널의 수정·종유석·버섯)는 탈출이 시작될 때 미리 받음(`prefetch(…, 2, { keep: false })`), 끝나면 게임이 keep 하지 않은 것만 놓음(`models.js isKept`; 인트로도 같은 기준으로 바뀜 — 전에는 미리 받아 둔 숲을 놓지 않았음)
+- 화질: 효과 없이 MSAA만(`post.render(…, plain)`), 그림자 지도는 단계 값(높음 2048·중간/낮음 1024 — 인트로도 이제 따름), 픽셀 비율은 게임과 같음
+- 함께 고침: 결과 화면 "모은 별" = 얻은 별 모두(`growth.js starsEarned`, 엔딩과 같은 수), 계속 탐험한 뒤의 탈출도 `world.won`+1(`afterEnding`에서 `run.won` 비움)
 
 ## Review
+- 만든 것: 탈출 → 바로 글자 엔딩·크레딧이던 것을 게임 렌더러 안의 3D 엔딩 컷신 50.5 s로. 장면 7개(빛 속으로 4 s · 햇빛 아래 7.5 s · 동굴의 변화 6.5 s · 함께한 것들 9 s · 길 떠나기 6.5 s · 크레딧 11 s · 떡밥 6 s), 자막 9줄(타자 22자/초), 건너뛰기 ▶▶·Esc 언제든 결과로, 클릭·탭·Space·Enter는 다음 줄(크레딧·떡밥에도 멈춤). 장면 4에 저장의 수(얻은 별·대장·가방의 수정 조각·전체 시간)와 3D 별(대장마다 큰 별)·수정 조각. 몰티즈는 꾸미기 그대로. 음악 `endingFree`(밝게) → `calm` → `ending`(크레딧, 결과까지) → `endingTease`, 효과음 `yawn`·`dim` 새로. 옛 `#ending` 화면·CSS 삭제
+- 인트로와 함께 쓰게 나눔: `timeline.js`(순수 규칙), `cutscene.js`(플레이어), `cutsceneSet.js`(숲·언덕·동굴 입구 무대). `intro.js` 1003 → 544줄, 인트로는 그대로(w8 다섯 가지 모두 통과, 같은 숲)
+- 함께 고침: 컷신 모델을 "게임이 keep 안 한 것"으로 놓음(인트로 숲이 미리 받아진 경우 놓이지 않던 것), 컷신 그림자 지도가 화질 단계를 따름, 결과 "모은 별" = 얻은 별 모두, 계속 탐험한 뒤의 탈출도 `world.won`+1
+- 확인: `npm test` 315 통과(새 `test/ending.test.js` 11개), vendor/polyfork를 치운 CI 조건에서도 315 통과(복원함), `npm run build` 통과. 새 `w9-ending.js`: 기본 34/34(장면 7·자막 9 순서, 50.5 s, 별 5·대장 4/4·조각 16·시간 = 저장, 크레딧 이름, THE END…?, GPU 기하·텍스처가 기준값으로(컷신 중 +130 기하), 결과 같은 수, 계속 탐험 → 캠프·보라 조각, 두 번째 탈출 장면 3에서 Esc → 결과(2번째로 셈), 세 번째 바로 건너뛰기 → 결과), `press` 8/8, `mobile` 세로 12/12·가로 12/12, `shots` 높음 16:9·중간·낮음 각 6/6. 콘솔 오류 없음
+- 전체 시나리오 한 번(포트 5192, 마지막 코드): w0~w9·m6a·m1·perf-ui 36번 실행 모두 통과(w4-king 29/29: 엔딩을 Space로 끝까지). `full.js` 처음 84/1(봇의 travel이 햇빛 뒤에도 돌아 확인이 장면 4에서 늦음 → 지나간 기록 `seen`으로 확인하도록 고침) → 다시 85/0(13.0분)
+- 스크린샷: scratchpad `shots/ending/`(`ending-1-light` … `ending-7-tease`, `-8-result`, `169-*` 16:9, `medium-*`·`low-*`, `ending-mobile-portrait-*`·`-landscape-*`)
+- 남은 것: 헤드리스라 실제 휴대폰의 프레임은 못 봄(숲은 인트로와 같음). 장면 2 기지개 포즈는 짧은 팔이 큰 머리 뒤로 들어가 "고개 들고 하품"으로 읽힘. 따님과 정할 것 셋(위 Todo 마지막)

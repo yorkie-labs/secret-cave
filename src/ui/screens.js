@@ -4,6 +4,7 @@ import { ENEMIES } from '../data/enemies.js';
 import { BOSSES } from '../data/bosses.js';
 import { CODEX_IDS } from '../data/codex.js';
 import { LABEL } from '../render/quality.js';
+import { starsEarned } from '../core/growth.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -65,7 +66,7 @@ export function createScreens(G, { onRestart, onTitle }) {
         const stat = (icon, n, label, id) => `<div class="stat" id="${id}"><i>${icon}</i><b>${n}</b><small>${label}</small></div>`;
         $('result-stats').innerHTML = [
           stat('⏱️', `${hh ? `${hh}:${String(mm).padStart(2, '0')}` : mm}:${String(ss).padStart(2, '0')}`, '모험한 시간', 'stat-time'),
-          stat('⭐', S.stars, '모은 별', 'stat-stars'),
+          stat('⭐', starsEarned(S), '모은 별', 'stat-stars'), // (every star earned: the ending showed the same)
           stat('📖', `${seen}/${CODEX_IDS.length}`, '도감', 'stat-codex'),
           stat('👑', `${bosses}/4`, '재운 대장', 'stat-bosses'),
           stat('💤', W.asleep ?? run.asleep, '재운 동물', 'stat-asleep'),
