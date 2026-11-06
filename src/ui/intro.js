@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { stage } from '../vendor/polyfork/stage.mjs';
+import { INTRO_MODELS } from './introModels.js';
 import { loadModels, instance, clipsOf, isLoaded, unloadModels } from '../world/models.js';
 import { createMaltese, createMalteseAnimator, createHammer, createWaterGun } from '../entities/maltese.js';
 import { softGlowTexture } from '../world/glow.js';
@@ -22,11 +23,7 @@ import { INTRO_LINES, INTRO_SCENES, INTRO_LENGTH, FADE_OUT, sceneAt, lineAt, typ
 const $ = (id) => document.getElementById(id);
 
 // the models the set uses (the animals and some clutter are the game's own)
-export const INTRO_MODELS = [
-  'introOak', 'introOak2', 'introBirch', 'introMaple', 'introPine', 'introYoungPine', 'introBush', 'stalactites',
-  'grass', 'flower', 'fern', 'fernClump', 'toadstool', 'mossBoulder', 'boulder', 'stump', 'log', 'caveMouth',
-  'crystalCluster', 'mushrooms', 'wolf', 'rabbit', 'fox', 'deer',
-];
+export { INTRO_MODELS };
 
 const HERO = 1.12; // (player.js HERO_SCALE)
 const FLOOR = -30; // the chamber's floor, straight under the hole

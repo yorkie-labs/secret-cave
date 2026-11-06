@@ -6,7 +6,7 @@ import { scatterPoints, RULES } from '../src/world/scatter.js';
 import { MAIN_WORLD } from '../src/world/worlds/main.js';
 import { FOREST_MODELS } from '../src/world/forest.js';
 import { HEART_MODELS } from '../src/world/heart.js';
-import { INTRO_MODELS } from '../src/ui/intro.js';
+import { INTRO_MODELS } from '../src/ui/introModels.js';
 import * as THREE from 'three';
 
 // Release: the first load streams. The title waits only for region 1's

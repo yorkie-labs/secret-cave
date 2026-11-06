@@ -36,7 +36,7 @@ import { createGame } from './core/game.js';
 import { createHud } from './ui/hud.js';
 import { createScreens } from './ui/screens.js';
 import { createStory } from './ui/story.js';
-import { INTRO_MODELS } from './ui/intro.js';
+import { INTRO_MODELS } from './ui/introModels.js';
 import { createInput } from './input.js';
 import { createPlayer } from './player/player.js';
 import { initAudio, resumeAudio, setMusic, setAmbience, sfx, currentMusic } from './audio/sound.js';
