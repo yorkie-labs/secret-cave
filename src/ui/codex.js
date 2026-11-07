@@ -1,5 +1,6 @@
 import { CODEX_PAGES, CODEX_IDS, CODEX_ENTRY } from '../data/codex.js';
 import { ITEMS } from '../data/items.js';
+import { phrase } from './wording.js';
 import { COMBOS } from '../combat/combos.js';
 import { MILESTONES } from '../core/growth.js';
 import { thumbOf, releaseThumbs } from './thumbs.js';
@@ -53,7 +54,7 @@ export function createCodex(G) {
     if (tab === 'combos') {
       $('codex-grid').innerHTML = COMBOS.map((c) => {
         const got = !!S.combos?.[c.id];
-        return `<div class="combo${got ? '' : ' unknown'}"><i>${got ? c.icon : '❔'}</i><b>${got ? c.name : '???'}</b><small>${c.text}</small></div>`;
+        return `<div class="combo${got ? '' : ' unknown'}"><i>${got ? c.icon : '❔'}</i><b>${got ? c.name : '???'}</b><small>${phrase(c.text)}</small></div>`;
       }).join('');
       $('codex-detail').innerHTML = '<p class="hint">두 아이템을 함께 쓰면 생기는 힘이에요. 써 보면 여기에 적혀요!</p>';
       return;
@@ -70,7 +71,7 @@ export function createCodex(G) {
     if (!seen(e.id)) { $('codex-detail').innerHTML = '<h3>❔ ???</h3><p class="hint">아직 만나지 못했어요. 동굴 어딘가에 있을 거예요!</p>'; return; }
     const img = thumbOf(e.id);
     const weak = e.weak ? `<p class="weak">약점: ${ITEMS[e.weak]?.icon ?? ''} <b>${ITEMS[e.weak]?.name ?? e.weak}</b> — ${e.hint}</p>` : e.hint ? `<p class="weak">💡 ${e.hint}</p>` : '';
-    $('codex-detail').innerHTML = `${img ? `<img src="${img}" alt="">` : `<i class="big">${e.icon}</i>`}<h3>${e.icon} ${e.name}</h3>${e.where ? `<p class="where">📍 ${e.where}</p>` : ''}<p>${e.desc}</p>${weak}`;
+    $('codex-detail').innerHTML = phrase(`${img ? `<img src="${img}" alt="">` : `<i class="big">${e.icon}</i>`}<h3>${e.icon} ${e.name}</h3>${e.where ? `<p class="where">📍 ${e.where}</p>` : ''}<p>${e.desc}</p>${weak}`);
   }
   el.addEventListener('click', (ev) => {
     const t = ev.target.closest('[data-tab]');

@@ -2,6 +2,7 @@
 
 | Date | Task | Todo | Lessons |
 |------|------|------|---------|
+| 2026-11-07 | 휴대폰 플레이 다듬기 (Scary Island처럼: 떠 있는 조이스틱·엄지 호·핀치·터치 말·배치) | [todo](20261107-mobile-todo.md) | [lessons](20261101-secret-cave-gdd-lessons.md) |
 | 2026-11-07 | 엔딩을 3D 컷신으로 | [todo](20261107-ending-cutscene-todo.md) | [lessons](20261101-secret-cave-gdd-lessons.md) |
 | 2026-11-07 | 성능 (레티나에서 느려짐): 화질 높음/중간/낮음 · 자동 낮추기 · `?perf=1` · 모델 굽기 · 그림자 다듬기 | [todo](20261107-perf-todo.md) | [lessons](20261101-secret-cave-gdd-lessons.md) |
 | 2026-11-06 | 몰티즈 룩 (퍼피컷) · 문 이름판 없애기 · 방패 쿨타임 없애기 | [todo](20261106-maltese-look-todo.md) | [lessons](20261101-secret-cave-gdd-lessons.md) |

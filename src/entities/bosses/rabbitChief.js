@@ -27,7 +27,7 @@ const KNOCK_DECAY = 8; // the hero's knock (player.js) slides v0 / 8 m
 const hintOf = {
   intro: '대장이 나타났어요!', idle: null, rest: null,
   crouch: '높이 뛰어요! 빨간 원 밖으로!', air: '빨간 원 밖으로!',
-  land: '충격파! 구르기(2)로 넘어요!', wave: '충격파! 구르기(2)로 넘어요!',
+  land: '충격파! 구르기[[(2)|(🌀)]]로 넘어요!', wave: '충격파! 구르기[[(2)|(🌀)]]로 넘어요!',
   dizzy: '어지러워해요! 지금 망치로!', stunned: '넘어졌어요! 지금 망치로!',
   ears: '귀 바람! 부채꼴 밖으로!', blow: '귀 바람! 부채꼴 밖으로!',
   aim: '빨간 길을 피해요! 세 번 와요!', run: '빨간 길을 피해요!', gap: '또 와요!',

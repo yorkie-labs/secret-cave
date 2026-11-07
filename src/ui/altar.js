@@ -3,6 +3,7 @@ import { applyWear } from '../entities/cosmetics.js';
 import { save } from '../core/state.js';
 import { sfx } from '../audio/sound.js';
 import { eul } from '../core/josa.js';
+import { phrase } from './wording.js';
 
 // W5: the star altar's panel at the camp (GDD §8.3 영구 성장): every unlock
 // with its price in stars (data/unlocks.js); a tap opens it for good. The
@@ -59,7 +60,7 @@ export function createAltar(G) {
       applyGrowth(G.run, G.state);
       if (u.herbs) G.run.herbs = Math.max(G.run.herbs, u.herbs);
       if (u.wear) applyWear(G.player.model, worn(G.state));
-      $('altar-say').textContent = `⭐ ${u.icon} ${u.name}! ${u.note}`;
+      $('altar-say').textContent = phrase(`⭐ ${u.icon} ${u.name}! ${u.note}`);
       G.hud.healed?.();
       G.refresh();
       render();
@@ -72,7 +73,7 @@ export function createAltar(G) {
     $('altar-goods').innerHTML = altarShelf(G.state).map((u) => {
       const cls = ['unlock', u.owned ? 'owned' : u.ok ? '' : 'no', u.worn ? 'worn' : ''].filter(Boolean).join(' ');
       const tag = u.owned ? (u.wear ? (u.worn ? '✓ 입고 있어요 (벗기)' : '입기') : '✓ 열었어요') : `⭐ ${u.cost}`;
-      return `<button class="${cls}" data-id="${u.id}" title="${u.note}"><i>${u.icon}</i><b>${u.name}</b><small>${u.note}</small><span>${tag}</span></button>`;
+      return `<button class="${cls}" data-id="${u.id}" title="${phrase(u.note)}"><i>${u.icon}</i><b>${u.name}</b><small>${phrase(u.note)}</small><span>${tag}</span></button>`;
     }).join('');
   }
   $('altar-goods').addEventListener('click', (e) => {

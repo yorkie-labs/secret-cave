@@ -251,6 +251,8 @@ async function boot() {
   G.onUpdate(() => hud.cooldowns({
     tool: G.tools[run.tool]?.cooldown ?? 0,
     shieldUp: G.shield.up,
+    hero: G.player.state, // (the thumb buttons' sweeps, on a touch screen)
+    swing: Math.min(1, G.player.state.swingWait * ITEMS.hammer.rate),
   }));
   // the hero's silhouette through pillars in the top-down view
   const heroGhost = addSilhouette(G.player.model, '#7fe3ff');

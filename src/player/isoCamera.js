@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { modelsVersion } from '../world/models.js';
+import { startDistance, zoomed } from '../ui/touchMath.js';
 
 // Diablo-style camera: a fixed three-quarter view from above that follows
 // the hero. The wheel zooms; pillars, rocks and pieces of cave wall between
@@ -20,7 +21,7 @@ export const ISO_PITCH = THREE.MathUtils.degToRad(40);
 const PITCH = ISO_PITCH;
 export const DIST_MIN = 18, DIST_MAX = 45;
 const DIST_START = 30; // GDD §5.1
-const DIST_PHONE = 23;
+const DIST_PHONE = 21; // a phone (short side < 500 px): the hero reads at ~38 pt, like Scary Island's
 const NEVER_FADE = new Set(['sky']);
 const LENS_CLEAR = 4; // m the lens keeps over a height world's ground
 // W7: rather than rise straight up over rock on its side (whose top then
@@ -163,8 +164,9 @@ export function createIsoCamera(G) {
     // a lying-down phone the same scale (the screen spans the same metres, just
     // turned); an upright window or tablet backs off a little too. Desktop
     // (landscape, mouse) keeps the tuned distance.
-    // a phone starts a little closer (the hero must read on a small screen)
-    if (G.touch && !rig.phone) { rig.phone = true; rig.distance = DIST_PHONE; }
+    // a phone starts a little closer (the hero must read on a small screen);
+    // a tablet keeps the desktop's view (ui/touchMath.js startDistance)
+    if (G.touch && !rig.phone) { rig.phone = true; rig.distance = startDistance({ touch: true, shortSide: Math.min(innerWidth, innerHeight), desktop: DIST_START, phone: DIST_PHONE }); }
     const a = camera.aspect;
     const narrow = a < 1 ? Math.min(1.5, 1 / Math.sqrt(a)) : G.touch ? Math.max(0.6, 1 / Math.sqrt(a)) : 1;
     let dist = rig.distance * narrow;
@@ -229,6 +231,8 @@ export function createIsoCamera(G) {
       return new Promise((r) => setTimeout(r, duration * 1000));
     },
     release() { override = null; },
+    // pinch (ui/touch.js): closer for < 1, farther for > 1, in the wheel's range
+    zoom(factor) { rig.distance = zoomed(rig.distance, factor, DIST_MIN, DIST_MAX); },
     snap(target) { focus.set(target.x, target.y + 0.6, target.z); snapNext = true; },
     get faded() { return faded; },
     get dolly() { return dolly; }, get lift() { return lift; }, get tilt() { return THREE.MathUtils.radToDeg(tilt); },

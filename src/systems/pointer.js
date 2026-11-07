@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { sfx } from '../audio/sound.js';
 import { ITEMS } from '../data/items.js';
+import { phrase } from '../ui/wording.js';
 import { slideDistance } from '../player/movement.js';
 import { resolveClick, clickWorld } from './resolveClick.js';
 
@@ -416,7 +417,7 @@ export function createPointer(G) {
   function plateHtml(e, label) {
     const hint = e.hint?.();
     const bars = e.maxHp ? `<div class="gauge">${Array.from({ length: Math.ceil(e.maxHp) }, (_, i) => `<i><span style="width:${Math.round(Math.min(1, Math.max(0, e.hp - i)) * 100)}%"></span></i>`).join('')}</div>` : '';
-    return `<b>${label ?? ''}</b>${bars}${hint ? `<small>${hint}</small>` : ''}`;
+    return `<b>${label ?? ''}</b>${bars}${hint ? `<small>${phrase(hint)}</small>` : ''}`;
   }
 
   // orders other parts of the UI can give (Alt labels are clickable)

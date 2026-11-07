@@ -31,24 +31,24 @@ export const ITEMS = {
   vine: {
     slot: 'tool', name: '덩굴', icon: '🌿', damage: 0, range: 6, bind: 3, bindWet: 5, cooldown: 8,
     speed: 14, // m/s, the vine's tip in flight
-    got: '덩굴을 얻었어요! 우클릭으로 던지고, Q로 바꿔요',
+    got: '덩굴을 얻었어요! [[우클릭으로 던지고, Q로 바꿔요|🔄 바꾸기 버튼으로 고르고, 도구 버튼으로 던져요]]',
   },
   // M6a: the mask (GDD §6.3): five seconds as an animal, which the animals
   // notice from a third as far; the first hammer from behind it hits twice as
   // hard, and any attack takes it off. `cooldown` counts from when it comes off.
   mask: {
     slot: 'tool', name: '탈', icon: '🎭', duration: 5, detectScale: 1 / 3, cooldown: 20, ambush: 2,
-    got: '탈을 얻었어요! Q로 바꾸고 우클릭으로 써요 (동물인 척!)',
+    got: '탈을 얻었어요! [[Q로 바꾸고 우클릭으로 써요|🔄 바꾸기 버튼으로 고르고 도구 버튼으로 써요]] (동물인 척!)',
   },
   shield: {
     slot: 'key3', name: '방패', icon: '🛡️', arc: 120, // up as long as 3 is held, no cooldown (user feedback 2026-11-06)
     slow: 0.5, // × walking speed while it is up
     bounce: 1.2, // m a blocked animal is pushed back
-    got: '방패를 얻었어요! 3을 누르고 있으면 앞을 막아요',
+    got: '방패를 얻었어요! [[3을|🛡️ 방패 버튼을]] 누르고 있으면 앞을 막아요',
   },
   herb: {
     slot: 'key4', name: '약초', icon: '🌱', heal: 2, useTime: 1, max: 3,
-    got: '약초를 얻었어요! 4를 누르면 먹어요',
+    got: '약초를 얻었어요! [[4를|🌱 약초 버튼을]] 누르면 먹어요',
   },
   // W3: armour (GDD §6.3): blue hearts over the red ones, taken first; the
   // springs fill them again. Its grade (§6.5) says how many.
@@ -105,11 +105,11 @@ export const ASSIST = { lowHearts: 0.25, herbBoost: 3, maxChance: 0.75 };
 // [call] no item grades yet (GDD §6.5 comes with M8): herbs, the mask, a
 // heart refill, and the vine and the shield for a hero who missed them.
 export const SHOP = [
-  { id: 'herb', item: 'herb', price: 3, name: '약초', icon: '🌱', note: '하트 2칸 회복 (4)' },
-  { id: 'mask', item: 'mask', price: 6, once: true, name: '탈', icon: '🎭', note: '동물인 척 5초 (우클릭)' },
+  { id: 'herb', item: 'herb', price: 3, name: '약초', icon: '🌱', note: '하트 2칸 회복[[ (4)|]]' },
+  { id: 'mask', item: 'mask', price: 6, once: true, name: '탈', icon: '🎭', note: '동물인 척 5초[[ (우클릭)|]]' },
   { id: 'heart', price: 4, heal: 2, name: '하트 물약', icon: '❤️', note: '지금 하트 2칸' },
   { id: 'vine', item: 'vine', price: 6, once: true, name: '덩굴', icon: '🌿', note: '늑대를 묶어요' },
-  { id: 'shield', item: 'shield', price: 6, once: true, name: '방패', icon: '🛡️', note: '앞을 막아요 (3)' },
+  { id: 'shield', item: 'shield', price: 6, once: true, name: '방패', icon: '🛡️', note: '앞을 막아요[[ (3)|]]' },
   // W3: armour (common: one blue heart), for a hero who has none yet
   { id: 'armor', item: 'armor', price: 8, once: true, name: '갑옷', icon: '🦺', note: '파란 하트 +1 (샘에서 다시 참)' },
   // W5: grade-ups (GDD §6.5, §14 #41): the next grade of the hammer or the

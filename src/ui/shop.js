@@ -3,6 +3,7 @@ import { ITEMS } from '../data/items.js';
 import { gradeName } from '../combat/grades.js';
 import { ga } from '../core/josa.js';
 import { sfx } from '../audio/sound.js';
+import { phrase } from './wording.js';
 
 // M6a: the shop panel (GDD §7.3 상점 방): the bat merchant's goods with their
 // prices in crystal shards, the hero's shards, a line from the merchant.
@@ -60,8 +61,8 @@ export function createShop(G) {
   function render() {
     $('shop-shards').textContent = `💎 ${G.run.shards}`;
     $('shop-goods').innerHTML = shelf(G.run).map((g) => `
-      <button class="good${g.ok ? '' : ' no'}" data-id="${g.id}" title="${g.note}">
-        <i>${g.icon}</i><b>${g.name}</b><small>${g.note}</small><span>💎 ${g.price}</span>
+      <button class="good${g.ok ? '' : ' no'}" data-id="${g.id}" title="${phrase(g.note)}">
+        <i>${g.icon}</i><b>${g.name}</b><small>${phrase(g.note)}</small><span>💎 ${g.price}</span>
       </button>`).join('');
   }
   $('shop-goods').addEventListener('click', (e) => {

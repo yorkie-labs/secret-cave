@@ -24,10 +24,19 @@ const browser = await puppeteer.launch({
   defaultViewport: { width: vw, height: vh, deviceScaleFactor: dpr },
 });
 const page = await browser.newPage();
-// MOBILE=1: an upright phone (touch, coarse pointer); MOBILE=landscape: lying down
+// MOBILE=1: an upright phone (touch, coarse pointer, iPhone 12/13: 390×844);
+// MOBILE=landscape: lying down (844×390); MOBILE=ipad: an iPad mini lying down
+// (1024×768), MOBILE=ipad-portrait upright. SIZE=WxH with MOBILE: another
+// phone size (e.g. 844x340, Safari's bars taking the height)
 if (process.env.MOBILE) {
-  const land = process.env.MOBILE === 'landscape';
-  await page.emulate({ userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1', viewport: { width: land ? 844 : 390, height: land ? 390 : 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true, isLandscape: land } });
+  const kind = process.env.MOBILE;
+  const ipad = kind.startsWith('ipad');
+  let [w, h] = ipad ? [1024, 768] : [844, 390];
+  if (kind === '1' || kind === 'portrait' || kind === 'ipad-portrait') [w, h] = [h, w];
+  if (process.env.SIZE) [w, h] = [vw, vh];
+  const ua = ipad ? 'Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
+    : 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+  await page.emulate({ userAgent: ua, viewport: { width: w, height: h, deviceScaleFactor: 2, isMobile: true, hasTouch: true, isLandscape: w > h } });
 }
 const logs = [];
 await page.setRequestInterception(true);
@@ -59,6 +68,10 @@ if (!gallery) {
   if (failed.length) console.log('MODELS LEFT OUT:', failed.join(', '));
 }
 await page.exposeFunction('shot', async (name) => { await page.screenshot({ path: `${outDir}/${name}.png` }); return `${outDir}/${name}.png`; });
+// real touches (the browser's own taps, drags and pinches, as a finger makes
+// them): touchInput('touchStart' | 'touchMove' | 'touchEnd', [{ x, y, id }])
+const cdp = await page.createCDPSession();
+await page.exposeFunction('touchInput', (type, points = []) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: points }));
 const scenario = readFileSync(scenarioPath, 'utf8');
 // `// @bot` in a scenario: the scripted player (scenarios/_bot.js) comes too
 const lib = gallery ? '' : readFileSync(new URL('./scenarios/_lib.js', import.meta.url), 'utf8')

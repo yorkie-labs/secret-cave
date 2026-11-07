@@ -66,9 +66,24 @@ small purple shard still glimmers… THE END…?
 | Space | use the nearest thing · next line of a dialogue |
 | Tab · Esc | cave map · menu (volume, quality) |
 
-Mouse wheel zooms. **Phones and tablets** get a joystick and buttons with a
-word under each icon (망치, 도구, 바꾸기, 구르기, 방패, 약초, 냄새, 사용, 지도,
-메뉴); tap the ground to walk there, tap a dialogue to go on.
+Mouse wheel zooms.
+
+**Phones and tablets** (touch screens):
+
+| Touch | Action |
+|-------|--------|
+| tap the ground | walk there · tap an animal: hammer it · tap a chest, door or the merchant: go and use it |
+| thumb down on the left half, drag | a joystick appears under the thumb and stays there until you let go |
+| two fingers | pinch to zoom (same range as the wheel) |
+| 🔨 (big, bottom right) | hammer, turned toward the nearest animal |
+| 💧 🌀 🛡️ 🌱 (the arc round it) | tool (aims at the nearest animal) · roll · shield (hold) · herb (shows how many) |
+| 🔄 👃 ✋ (further out) | switch tool · sniff · use the nearest thing |
+| 🗺️ ☰ (by the minimap) | map · menu |
+
+Each button has a word under its icon, a cooldown sweep, and is dimmed (🔒 for
+the shield) until it can be used. Hints, toasts and the shop speak of taps and
+buttons instead of keys. Phones start the camera closer; the view has the same
+scale upright and lying down.
 
 ## Quality
 

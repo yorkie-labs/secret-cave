@@ -3,6 +3,9 @@ import { heartsText } from '../combat/hits.js';
 import { otherTools, maxArmor } from '../combat/loadout.js';
 import { ITEMS } from '../data/items.js';
 import { gradeOf, gradeName } from '../combat/grades.js';
+import { phrase } from './wording.js';
+import { actionSweep } from './touchMath.js';
+import { ACTIONS as MOVES } from '../player/movement.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -23,6 +26,9 @@ function setSweep(el, p) {
   if (el.dataset.p !== v) { el.dataset.p = v; el.style.setProperty('--p', v); }
 }
 
+// a thumb button (ui/touch.js) by its key
+const thumb = (key) => document.querySelector(`#touch [data-key="${key}"]`);
+
 export function createHud() {
   // clicking a hotbar slot or a skill icon presses its key
   let pressed = null;
@@ -36,9 +42,12 @@ export function createHud() {
   let slotsKey = '';
   let toastTimer = 0;
   let dialogQueue = null;
+  let cardTimer = 0, cardDone = null; // (a new card ends the one before: its timer must not hide the new one)
+  let lastAction = null; // the hero's action that ended last (its short wait sweeps that button)
+  addEventListener('resize', () => setTimeout(() => hud.relayout(), 60));
 
   const hud = {
-    show(v) { $('hud').classList.toggle('hidden', !v); document.body.classList.toggle('playing', v); },
+    show(v) { $('hud').classList.toggle('hidden', !v); document.body.classList.toggle('playing', v); if (v) hud.relayout(); },
 
     // run: { hearts, maxHearts, water, shards } (hearts in half-heart steps)
     update(run) {
@@ -82,11 +91,11 @@ export function createHud() {
       const row = $('tool-others');
       row.innerHTML = others.length ? `<small>Q</small>${others.map((k) => `<span title="${ITEMS[k].name}">${ITEMS[k].icon}</span>`).join('')}` : '';
       row.classList.toggle('hidden', !others.length);
-      const touchTool = document.querySelector('#touch-buttons [data-key="Tool"]');
+      const touchTool = thumb('Tool');
       if (touchTool) touchTool.querySelector('.ico').textContent = tool.icon; // (its label stays: 도구)
       // W5: the hammer's and the water gun's grades: the slot's border colour
       const gH = gradeOf(run, 'hammer'), gT = run.tool === 'waterGun' ? gradeOf(run, 'waterGun') : 'common';
-      const touchHammer = document.querySelector('#touch-buttons [data-key="Hammer"]');
+      const touchHammer = thumb('Hammer');
       for (const [el, g, what] of [[$('skill-left'), gH, '망치'], [$('skill-right'), gT, tool.name], [touchHammer, gH], [touchTool, gT]]) {
         if (!el) continue;
         el.classList.toggle('grade-rare', g === 'rare');
@@ -99,8 +108,7 @@ export function createHud() {
           el.title = `${el.title}${g === 'common' ? '' : ` · ${gradeName(g)}`}`;
         }
       }
-      const touchQ = document.querySelector('#touch-buttons [data-key="KeyQ"]');
-      if (touchQ) touchQ.classList.toggle('dim', !others.length);
+      thumb('KeyQ')?.classList.toggle('dim', !others.length); // (nothing to switch to yet)
       // the hotbar, redrawn only when what it shows changes
       const herbs = run.herbs ?? 0, hasShield = owned.includes('shield');
       const key = `${hasShield}|${herbs}`;
@@ -115,18 +123,36 @@ export function createHud() {
           return `<div class="${cls}" id="slot-${i + 1}" data-key="${a.key}" title="${tip}"><small>${i + 1}</small>${a.icon}${count}<i class="cd"></i></div>`;
         }).join('');
       }
-      const touchHerb = document.querySelector('#touch-buttons [data-key="Digit4"]');
-      if (touchHerb) touchHerb.dataset.count = String(herbs);
-      const touchShield = document.querySelector('#touch-buttons [data-key="Digit3"]');
-      if (touchShield) touchShield.classList.toggle('dim', !hasShield);
+      // the thumb buttons: the herb's one slot shows how many (dim at none),
+      // the shield is locked (🔒) until a chest or the merchant gives it
+      const touchHerb = thumb('Digit4');
+      if (touchHerb) { touchHerb.dataset.count = String(herbs); touchHerb.classList.toggle('dim', herbs === 0); }
+      const touchShield = thumb('Digit3');
+      if (touchShield) {
+        touchShield.classList.toggle('locked', !hasShield);
+        if (hasShield) delete touchShield.dataset.badge; else touchShield.dataset.badge = '🔒';
+      }
     },
 
     // every frame: the cooldown sweep on the tool, and the shield's slot lit
     // while it is up (the shield has no cooldown: no sweep)
-    cooldowns({ tool = 0, shieldUp = false }) {
+    // (`hero`: the player's state; on a touch screen the thumb buttons sweep
+    // too: the hammer's wait, the tool's, and roll / sniff / herb while the
+    // hero is busy with them)
+    cooldowns({ tool = 0, shieldUp = false, hero = null, swing = 0 }) {
       setSweep($('skill-right')?.querySelector('.cd'), tool);
       const s3 = $('slot-3');
       if (s3 && s3.classList.contains('up') !== shieldUp) s3.classList.toggle('up', shieldUp);
+      if (!hero || !document.body.classList.contains('touch')) return;
+      if (hero.action) lastAction = hero.action.name;
+      const s = { action: hero.action, cooldown: hero.cooldown, last: lastAction };
+      setSweep(thumb('Tool')?.querySelector('.cd'), tool);
+      setSweep(thumb('Hammer')?.querySelector('.cd'), swing);
+      setSweep(thumb('Digit2')?.querySelector('.cd'), actionSweep('roll', s, MOVES));
+      setSweep(thumb('Digit1')?.querySelector('.cd'), actionSweep('sniff', s, MOVES));
+      setSweep(thumb('Digit4')?.querySelector('.cd'), actionSweep('eat', s, MOVES));
+      const sb = thumb('Digit3');
+      if (sb && sb.classList.contains('up') !== shieldUp) sb.classList.toggle('up', shieldUp);
     },
     // the tool is still cooling down: a little shake
     toolBusy() {
@@ -166,15 +192,16 @@ export function createHud() {
     // lines at 66 % and 33 %), the stun gauge, and what to do now
     bossPlate(b) {
       const el = $('boss-plate');
-      if (!b) { if (!el.classList.contains('hidden')) { el.classList.add('hidden'); document.body.classList.remove('boss'); } return; }
-      if (el.classList.contains('hidden')) { el.classList.remove('hidden'); document.body.classList.add('boss'); }
+      if (!b) { if (!el.classList.contains('hidden')) { el.classList.add('hidden'); document.body.classList.remove('boss'); hud.relayout(); } return; }
+      if (el.classList.contains('hidden')) { el.classList.remove('hidden'); document.body.classList.add('boss'); hud.relayout(); }
       const key = `${b.name}|${b.hp.toFixed(2)}|${b.stun.toFixed(2)}|${b.hint}|${b.phase}|${b.dazed}`;
       if (el.dataset.key === key) return;
       el.dataset.key = key;
       $('boss-name').textContent = b.name;
       el.querySelector('.hp span').style.width = `${Math.max(0, b.hp / b.maxHp) * 100}%`;
       el.querySelector('.stun span').style.width = `${Math.min(1, b.stun) * 100}%`;
-      $('boss-hint').textContent = b.hint ?? '';
+      const hint = phrase(b.hint ?? '');
+      if ($('boss-hint').textContent !== hint) { $('boss-hint').textContent = hint; hud.relayout(); } // (a longer hint can wrap: the plate grows)
       el.dataset.phase = String(b.phase);
       el.classList.toggle('dazed', !!b.dazed);
     },
@@ -188,17 +215,34 @@ export function createHud() {
     },
 
     // top left: the area and how far through it (GDD §5.2)
-    area(text) { $('area-name').textContent = text; },
+    area(text) { $('area-name').textContent = text; hud.relayout(); },
 
+    // Where the top-left pieces end, as CSS variables: an upright phone stacks
+    // the status bar under the area's name, then the boss plate, then toasts
+    // and the hover plate (style.css, body.touch in portrait)
+    relayout() {
+      if (!document.body.classList.contains('touch')) return;
+      const bottom = (id) => { const el = $(id); return el && !el.classList.contains('hidden') && el.offsetParent ? el.getBoundingClientRect().bottom : 0; };
+      const root = document.documentElement.style;
+      root.setProperty('--area-bottom', `${Math.round(bottom('area-name'))}px`);
+      const upright = innerHeight > innerWidth; // (lying down the bar is at the bottom)
+      const stack = Math.max(upright ? bottom('bar') : 0, bottom('minimap'), bottom('touch-top'), bottom('area-name'));
+      root.setProperty('--stack-bottom', `${Math.round(stack)}px`);
+      root.setProperty('--plate-bottom', `${Math.round(Math.max(stack, bottom('boss-plate')))}px`);
+      root.setProperty('--boss-bottom', `${Math.round(bottom('boss-plate'))}px`);
+    },
+
+    // (a touch screen: the ✋ button is lit only while something is near to use)
     prompt(text) {
       const el = $('prompt');
       el.classList.toggle('hidden', !text);
       if (text && el.textContent !== text) el.textContent = text;
+      thumb('Space')?.classList.toggle('dim', !text && !dialogQueue);
     },
 
     toast(text, ms = 2200) {
       const el = $('toast');
-      el.textContent = text;
+      el.textContent = phrase(text);
       el.classList.add('show');
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => el.classList.remove('show'), ms);
@@ -231,16 +275,17 @@ export function createHud() {
 
     card(html, ms = 2600) {
       const el = $('card');
-      el.innerHTML = html;
+      clearTimeout(cardTimer); cardDone?.();
+      el.innerHTML = phrase(html);
       el.classList.remove('hidden', 'show'); void el.offsetWidth; el.classList.add('show');
-      return new Promise((r) => setTimeout(() => { el.classList.add('hidden'); r(); }, ms));
+      return new Promise((r) => { cardDone = r; cardTimer = setTimeout(() => { el.classList.add('hidden'); cardDone = null; r(); }, ms); });
     },
   };
 
   function showLine() {
     const l = dialogQueue.lines[dialogQueue.i];
     $('dialog-name').textContent = l.name ?? '';
-    $('dialog-text').textContent = l.text;
+    $('dialog-text').textContent = phrase(l.text);
   }
 
   return hud;

@@ -137,7 +137,7 @@ export function createExpedition(G, def) {
     const found = () => !!x.gates?.[g.id]?.revealed;
     return {
       get label() { return found() ? '✨ 비밀 수정 문' : '🪨 이끼 낀 바위 벽'; },
-      get toast() { return found() ? (state.necklace ? '🏅 황금 목걸이를 가진 채 문 가까이 가 보세요!' : '✨ 무언가로 열 수 있을 것 같아요…') : '🐾 킁킁… 이 벽에서 신기한 냄새가 나요. 1번(냄새 맡기)!'; },
+      get toast() { return found() ? (state.necklace ? '🏅 황금 목걸이를 가진 채 문 가까이 가 보세요!' : '✨ 무언가로 열 수 있을 것 같아요…') : '🐾 킁킁… 이 벽에서 신기한 냄새가 나요. [[1번(냄새 맡기)|👃 냄새 버튼]]!'; },
     };
   }
   // W5: the secret pockets (and the purple shard after the ending)

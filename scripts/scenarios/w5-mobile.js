@@ -20,7 +20,7 @@ const touch = (el, type, x, y) => {
   const t = new Touch({ identifier: 7, target: el, clientX: x, clientY: y });
   el.dispatchEvent(new TouchEvent(type, { touches: type === 'touchend' ? [] : [t], changedTouches: [t], bubbles: true, cancelable: true }));
 };
-const tapKey = (key) => { const b = document.querySelector(`#touch-buttons [data-key="${key}"]`); touch(b, 'touchstart', 1, 1); touch(b, 'touchend', 1, 1); };
+const tapKey = (key) => { const b = document.querySelector(`#touch [data-key="${key}"]`); touch(b, 'touchstart', 1, 1); touch(b, 'touchend', 1, 1); };
 G.hurtPlayer = () => false;
 check('a touch screen', G.touch === true && document.body.classList.contains('touch'), innerWidth, innerHeight);
 await start(); await wait(1500); await skip();
@@ -28,16 +28,17 @@ X.jump('camp'); await wait(1500); await skip();
 check('the touch controls show in play', getComputedStyle($('touch')).display !== 'none');
 // every action has a button, on screen, big enough
 const keys = ['Hammer', 'Tool', 'KeyQ', 'Digit2', 'Digit3', 'Digit4', 'Digit1', 'Space', 'Tab', 'Escape'];
-const btns = keys.map((k) => document.querySelector(`#touch-buttons [data-key="${k}"]`));
+const btns = keys.map((k) => document.querySelector(`#touch [data-key="${k}"]`));
 check('a button for every action (hammer, tool, Q, roll, shield, herb, sniff, use, map, menu)', btns.every(Boolean), keys.filter((k, i) => !btns[i]).join(','));
 check('…all on screen, at least 44 px', btns.every((b) => b && onScreen(rect(b)) && rect(b).width >= 44 && rect(b).height >= 44), btns.map((b) => b && Math.round(rect(b).width)).join(','));
-const hud = { bar: rect('bar-row'), mini: rect('minimap'), area: rect('area-name'), badge: rect('necklace-badge'), stick: rect('stick'), btns: rect('touch-buttons') };
+const hud = { bar: rect('bar-row'), mini: rect('minimap'), area: rect('area-name'), badge: rect('necklace-badge'), stick: rect('stick'), btns: (() => { const rs = [...document.querySelectorAll('#touch-buttons button')].map(rect); return { left: Math.min(...rs.map((r) => r.left)), top: Math.min(...rs.map((r) => r.top)), right: Math.max(...rs.map((r) => r.right)), bottom: Math.max(...rs.map((r) => r.bottom)), width: 1 }; })() };
 check('the HUD on screen: the bar, the minimap, the area name, the badge, the stick', ['bar', 'mini', 'area', 'badge', 'stick'].every((k) => onScreen(hud[k])), Object.entries(hud).map(([k, r]) => `${k}${R(r)}`).join(' '));
-const pairs = [['bar', 'btns'], ['bar', 'stick'], ['stick', 'btns'], ['mini', 'btns'], ['mini', 'badge'], ['area', 'mini']];
+const pairs = [['bar', 'btns'], ['mini', 'btns'], ['mini', 'badge'], ['area', 'mini']]; // (the stick floats now: w10-mobile checks it against the round buttons)
 check('…clear of each other (the bar, the stick, the buttons, the minimap)', pairs.every(([a, b]) => !overlap(hud[a], hud[b])), pairs.filter(([a, b]) => overlap(hud[a], hud[b])).map((p) => p.join('×')).join(','));
 await shot(`w5-mobile-${tag}-camp`);
-// the joystick walks the hero over the terrain
-const st = $('stick'), sr = rect(st);
+// the joystick walks the hero over the terrain (W10: it floats, so the thumb
+// lands on the world where the resting stick shows)
+const st = G.renderer.domElement, sr = rect('stick');
 const p0 = P.position.clone();
 touch(st, 'touchstart', sr.left + sr.width / 2, sr.top + sr.height / 2);
 touch(st, 'touchmove', sr.left + sr.width / 2 + 10, sr.top + sr.height / 2 - 50);
@@ -59,7 +60,7 @@ G.run.hearts = 3; G.hud.update(G.run);
 const herbs0 = G.run.herbs;
 tapKey('Digit4'); await wait(1400);
 check('🌱 eats a herb', G.run.herbs === herbs0 - 1 && G.run.hearts === 5, G.run.herbs, G.run.hearts);
-const sb = document.querySelector('#touch-buttons [data-key="Digit3"]');
+const sb = document.querySelector('#touch [data-key="Digit3"]');
 touch(sb, 'touchstart', 1, 1); await wait(300);
 const up = G.shield.up;
 touch(sb, 'touchend', 1, 1); await wait(200);

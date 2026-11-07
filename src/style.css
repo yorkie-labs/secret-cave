@@ -92,12 +92,6 @@ button:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0, 0, 0, 0.
 #menu-stars { font-size: 20px; }
 #menu-controls { font-size: 15px; line-height: 1.8; opacity: 0.9; max-width: 560px; }
 kbd { display: inline-block; min-width: 22px; padding: 0 6px; border-radius: 6px; background: var(--ink); color: var(--panel-solid); font: 600 13px/22px system-ui; text-align: center; }
-/* touch controls (mobile, GDD §9.2) */
-#touch { position: fixed; inset: 0; pointer-events: none; z-index: 4; }
-#stick { position: absolute; left: 28px; bottom: 28px; width: 130px; height: 130px; border-radius: 50%; background: rgba(255, 255, 255, 0.15); pointer-events: auto; touch-action: none; }
-#knob { position: absolute; left: 40px; top: 40px; width: 50px; height: 50px; border-radius: 50%; background: rgba(255, 255, 255, 0.6); }
-#touch-buttons { position: absolute; right: 14px; bottom: 18px; display: grid; grid-template-columns: repeat(4, 54px); gap: 8px; pointer-events: auto; }
-#touch-buttons button { width: 54px; height: 54px; padding: 0; font-size: 22px; background: rgba(255, 255, 255, 0.75); }
 
 @media (max-width: 640px) {
   .slot { width: 46px; height: 46px; font-size: 22px; }
@@ -162,13 +156,6 @@ body[data-cursor="use"] canvas { cursor: pointer; }
 #bar .slot.locked { opacity: .25; }
 .orb.healed { animation: healed .6s; }
 @keyframes healed { 30% { box-shadow: 0 0 22px 6px rgba(125, 255, 138, .8), inset 0 0 14px rgba(0,0,0,.8); } }
-#touch-buttons button.dim { opacity: .35; }
-#touch-buttons button[data-count]::after { content: attr(data-count); position: absolute; right: 4px; top: 2px; font-size: 12px; }
-#touch-buttons button { position: relative; }
-/* W7: a word under each icon (an 8-year-old reads "바꾸기", not 🔄) */
-#touch-buttons button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; line-height: 1; }
-#touch-buttons .ico { line-height: 1; }
-#touch-buttons .lbl { font-size: 11px; line-height: 1; color: #2b2233; letter-spacing: -0.5px; white-space: nowrap; }
 #bar .slot { width: 44px; height: 44px; font-size: 22px; border-radius: 9px; background: rgba(255,255,255,.06); }
 @media (max-width: 640px) {
   .orb { width: 56px; height: 56px; } .orb .glyph { font-size: 18px; }
@@ -195,48 +182,6 @@ html, body, #app canvas { touch-action: none; }
 #bar { pointer-events: auto; }
 #bar .slot, #bar .orb, #bar .skill { cursor: pointer; }
 #help-hint { left: 16px; top: 54px; bottom: auto; }
-/* ---- phones and tablets (body.touch, set by ui/touch.js) ----
-   The touch buttons already hold the skills, so the bar keeps just the orbs;
-   everything sits clear of the joystick
-   (bottom left) and the buttons (bottom right). */
-body.touch #help-hint, body.touch #skill-left, body.touch #skill-right, body.touch #slots { display: none; }
-body.touch:not(.playing) #touch { display: none; }
-body.touch #bar { transform: translateX(-50%); }
-body.touch .orb { width: 52px; height: 52px; border-width: 3px; }
-body.touch .orb .glyph { font-size: 17px; }
-body.touch .orb .num { font-size: 11px; bottom: 5px; }
-body.touch #bar .slot { width: 34px; height: 34px; font-size: 17px; }
-body.touch #bar-row { gap: 6px; padding: 4px 8px; }
-body.touch #prompt { pointer-events: auto; font-size: 17px; }
-body.touch #menu-controls kbd { font: inherit; font-size: 13px; line-height: 20px; }
-
-/* upright phone: buttons in 4 columns (W5: ten, with the map) */
-@media (orientation: portrait) {
-  body.touch #area-name { left: 10px; top: 10px; font-size: 15px; padding: 5px 12px; }
-  body.touch #hover-plate { top: 118px; }
-  body.touch #toast { top: 128px; font-size: 16px; }
-  body.touch #stick { left: 18px; bottom: 24px; width: 120px; height: 120px; }
-  body.touch #knob { left: 35px; top: 35px; }
-  body.touch #touch-buttons { right: 12px; bottom: 16px; grid-template-columns: repeat(4, 52px); gap: 8px; }
-  body.touch #touch-buttons button { width: 52px; height: 52px; font-size: 20px; }
-  body.touch #bar { bottom: 196px; }
-  body.touch #prompt { bottom: 296px; }
-  body.touch #dialog { bottom: 196px; font-size: 18px; padding: 14px 18px 24px; }
-}
-/* lying down: the bar sits low between the stick and the buttons */
-@media (orientation: landscape) {
-  body.touch #area-name { left: 10px; top: 6px; font-size: 14px; padding: 4px 12px; }
-  body.touch #hover-plate { top: 64px; }
-  body.touch #toast { top: 64px; font-size: 16px; }
-  body.touch #stick { left: 16px; bottom: 16px; width: 110px; height: 110px; }
-  body.touch #knob { left: 30px; top: 30px; }
-  body.touch #touch-buttons { right: 12px; bottom: 12px; grid-template-columns: repeat(3, 46px); gap: 6px; }
-  body.touch #touch-buttons button { width: 46px; height: 46px; font-size: 17px; }
-  body.touch #touch-buttons .lbl { font-size: 10px; }
-  body.touch #bar { bottom: 6px; }
-  body.touch #prompt { bottom: 112px; }
-  body.touch #dialog { bottom: 8px; width: min(600px, 62vw); font-size: 17px; line-height: 1.4; padding: 12px 18px 22px; }
-}
 /* short screens (phones lying down): menus get compact */
 @media (max-height: 500px) {
   .screen { gap: 8px; padding: 10px; }
@@ -289,7 +234,6 @@ body.touch #menu-controls kbd { font: inherit; font-size: 13px; line-height: 20p
 /* the minimap: top right, the necklace badge beside it */
 #minimap { position: absolute; right: 14px; top: 14px; width: 150px; height: 150px; border-radius: 50%; border: 3px solid rgba(255, 225, 140, 0.6); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45); background: #141019; pointer-events: none; }
 body.no-map #minimap { display: none; }
-body.touch #minimap { width: 96px; height: 96px; right: 10px; top: 10px; border-width: 2px; }
 @keyframes throb2 { 50% { box-shadow: 0 0 20px #ffcf4a; } }
 
 /* ---- M5: the boss plate (GDD §3.3: hp, stun gauge, hint), the necklace ---- */
@@ -308,13 +252,9 @@ body.touch #minimap { width: 96px; height: 96px; right: 10px; top: 10px; border-
 #boss-plate small { display: block; font-size: 15px; margin-top: 3px; color: #fff; }
 #boss-plate.dazed { border-color: #fff27a; box-shadow: 0 0 18px rgba(255, 236, 120, .7); }
 #boss-plate.dazed small { color: #fff27a; }
-body.touch #boss-plate { top: 44px; width: min(380px, 70vw); padding: 4px 10px 5px; }
-body.touch #boss-plate b { font-size: 16px; }
-body.touch #boss-plate small { font-size: 13px; }
 #necklace-badge { position: absolute; right: 176px; top: 12px; font-size: 22px; padding: 2px 8px; border-radius: 12px; background: var(--panel); filter: drop-shadow(0 0 4px #ffd84a); }
 #necklace-badge.glow { animation: neckGlow 1.6s; }
 @keyframes neckGlow { 30% { transform: scale(1.5); box-shadow: 0 0 26px 10px rgba(255, 220, 110, .85); } }
-body.touch #necklace-badge { top: 8px; right: 114px; font-size: 18px; }
 
 /* ---- M5: title, prologue, ending ---- */
 #title .kicker { margin: 0 0 4px; font-size: clamp(30px, 6vw, 54px); color: #ffe9a8; letter-spacing: 8px; text-shadow: 0 3px 0 #3a2466, 0 0 18px rgba(180, 140, 255, .6); }
@@ -404,17 +344,6 @@ body.intro-on #hud, body.intro-on #touch, body.intro-on #toast, body.intro-on #c
 /* the boss plate takes the top: toasts and the hover plate go under it */
 body.boss #toast { top: 128px; }
 body.boss #hover-plate { top: 128px; }
-body.touch.boss #toast { top: 132px; }
-/* an upright phone in a boss fight: the minimap steps down below the boss plate */
-@media (orientation: portrait) { body.touch.boss #minimap { top: 164px; width: 80px; height: 80px; } body.touch #boss-plate { top: 50px; } }
-@media (orientation: landscape) and (max-height: 500px) {
-  body.touch #boss-plate { top: 6px; width: min(360px, 46vw); padding: 3px 10px 4px; border-width: 2px; }
-  body.touch #boss-plate b { font-size: 14px; }
-  body.touch #boss-plate .bar.hp { height: 9px; margin-top: 2px; }
-  body.touch #boss-plate .bar.stun { height: 5px; }
-  body.touch #boss-plate small { font-size: 12px; margin-top: 1px; }
-  body.touch.boss #toast { top: 84px; }
-}
 
 /* M6a: poison: a green glow at the screen's edges while the hero stands in it */
 #poison-tint {
@@ -440,7 +369,6 @@ body.touch.boss #toast { top: 132px; }
 #shop-goods .good span { font-size: 15px; color: #7a3fb0; font-weight: bold; }
 #shop-goods .good.no { opacity: 0.5; }
 #shop .row { display: flex; justify-content: center; }
-body.touch #shop-goods { grid-template-columns: repeat(2, 1fr); }
 
 /* W1/W5: the codex book (ui/codex.js): tabs, a grid of little pictures,
    the chosen entry's page beside it (under it on a narrow screen) */
@@ -529,7 +457,6 @@ body.touch #shop-goods { grid-template-columns: repeat(2, 1fr); }
 #altar-goods .unlock.owned span { color: #3a8a3a; }
 #altar-goods .unlock.worn { outline: 3px solid #f0b43c; background: #fff1c4; }
 #altar .row { display: flex; justify-content: center; }
-body.touch #altar-goods { grid-template-columns: repeat(2, 1fr); }
 @media (max-height: 500px) {
   #altar { padding: 8px 12px; }
   #altar-head .star { font-size: 30px; }
@@ -562,7 +489,6 @@ body.touch #altar-goods { grid-template-columns: repeat(2, 1fr); }
   font-size: 26px; color: #fff6c4; background: rgba(122, 63, 176, 0.85); padding: 6px 18px; border-radius: 999px; border: 3px solid #ffd36a; text-shadow: 0 2px 2px rgba(0,0,0,.4); white-space: nowrap; }
 #combo-pop.show { animation: comboPop 1.4s ease-out forwards; }
 @keyframes comboPop { 0% { opacity: 0; transform: translateX(-50%) scale(0.6); } 15% { opacity: 1; transform: translateX(-50%) scale(1.15); } 30% { transform: translateX(-50%) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translateX(-50%) translateY(-30px); } }
-body.touch #combo-pop { bottom: 260px; font-size: 20px; }
 /* W5: the menu's volume sliders */
 #menu-volume { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; font-size: 18px; }
 #menu-volume label { display: flex; align-items: center; gap: 8px; }
@@ -575,3 +501,136 @@ body.touch #combo-pop { bottom: 260px; font-size: 20px; }
 @keyframes clockPulse { from { transform: translateX(-50%) scale(1); } to { transform: translateX(-50%) scale(1.06); } }
 #necklace-badge.glow { animation: necklaceGlow .5s ease-in-out infinite alternate; filter: drop-shadow(0 0 10px #ffd66a) drop-shadow(0 0 22px #b48cff); }
 @keyframes necklaceGlow { from { transform: scale(1); } to { transform: scale(1.35); } }
+
+/* ---- phones and tablets (body.touch, set by ui/touch.js; tasks/20261107-mobile-todo.md) ----
+   After Scary Island's iPhone playtest: the joystick floats under the left
+   thumb; the right thumb has a big hammer in the corner, four buttons on an
+   arc round it and three smaller ones further out; the map and the menu sit
+   by the minimap. The bar keeps just the orbs and the shards (the buttons
+   hold the skills); upright it goes top-left under the area's name. All of it
+   keeps clear of the notch (safe-area insets, viewport-fit=cover) and lets
+   taps through to the world, except its own buttons. */
+:root { --sl: env(safe-area-inset-left, 0px); --sr: env(safe-area-inset-right, 0px); --st: env(safe-area-inset-top, 0px); --sb: env(safe-area-inset-bottom, 0px); }
+body.touch { -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+#touch { position: fixed; inset: 0; pointer-events: none; z-index: 4; }
+/* the joystick: resting, a faint hint bottom-left; held, where the thumb came down */
+#stick { position: absolute; left: calc(var(--sl) + 18px); bottom: calc(var(--sb) + 22px); width: 120px; height: 120px; border-radius: 50%; background: rgba(255, 255, 255, 0.15); pointer-events: none; opacity: 0.4; transition: opacity 0.2s; }
+#stick.held { opacity: 1; transition: none; }
+#knob { position: absolute; left: 35px; top: 35px; width: 50px; height: 50px; border-radius: 50%; background: rgba(255, 255, 255, 0.6); }
+/* a word under each icon (W7: an 8-year-old reads "바꾸기", not 🔄), kept small */
+#touch button { padding: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.78); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; line-height: 1; touch-action: none; }
+#touch button:hover { background: rgba(255, 255, 255, 0.78); color: var(--panel-solid); }
+#touch .ico { line-height: 1; }
+#touch .lbl { font-size: 10px; line-height: 1; color: #2b2233; letter-spacing: -0.5px; white-space: nowrap; }
+/* the right thumb: each button placed by its centre (right / bottom of the corner) */
+#touch-buttons { position: absolute; right: var(--sr); bottom: var(--sb); width: 0; height: 0; pointer-events: auto; transform-origin: right bottom; }
+#touch-buttons button { position: absolute; width: 56px; height: 56px; font-size: 21px; transform: translate(50%, 50%); }
+#touch-buttons button:active { transform: translate(50%, calc(50% + 2px)); }
+#touch-buttons [data-key="Hammer"] { width: 80px; height: 80px; font-size: 32px; right: 64px; bottom: 64px; }
+#touch-buttons [data-key="Hammer"] .lbl { font-size: 12px; }
+#touch-buttons [data-key="Tool"] { right: 182px; bottom: 64px; }    /* the arc: 118 px out at 0°, 30°, 60°, 90° */
+#touch-buttons [data-key="Digit2"] { right: 166px; bottom: 123px; }
+#touch-buttons [data-key="Digit3"] { right: 123px; bottom: 166px; }
+#touch-buttons [data-key="Digit4"] { right: 64px; bottom: 182px; }
+#touch-buttons button.small { width: 48px; height: 48px; font-size: 18px; }
+#touch-buttons [data-key="KeyQ"] { right: 244px; bottom: 102px; }  /* further out: 184 px at 12°, 45°, 78° */
+#touch-buttons [data-key="Digit1"] { right: 194px; bottom: 194px; }
+#touch-buttons [data-key="Space"] { right: 102px; bottom: 244px; }
+/* the cooldown sweep (hud.cooldowns: hammer, tool, roll, sniff, herb) */
+#touch .cd { z-index: 1; }
+/* not yet: dim (nothing to switch to, no herb left, nothing near to use);
+   locked with a badge (no shield yet); the shield lit while it is up */
+#touch button.dim { opacity: 0.42; }
+#touch button.locked { opacity: 0.55; filter: grayscale(1); }
+#touch button[data-badge]::after { content: attr(data-badge); position: absolute; z-index: 2; right: -5px; bottom: -5px; font-size: 11px; line-height: 1; padding: 3px 4px; border-radius: 999px; background: var(--panel-solid); filter: none; }
+#touch button[data-count]::before { content: attr(data-count); position: absolute; z-index: 2; right: -5px; top: -5px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: #2f8a3a; color: #fff; font-size: 13px; line-height: 20px; }
+#touch button.up { background: #ffe17a; box-shadow: 0 0 0 3px #ffe17a, 0 0 16px rgba(255, 225, 122, 0.85); }
+/* map and menu: small, by the minimap */
+#touch-top { position: absolute; display: flex; gap: 6px; pointer-events: auto; }
+#touch-top button { width: 46px; height: 46px; font-size: 18px; }
+
+body.touch #help-hint, body.touch #skill-left, body.touch #skill-right, body.touch #slots, body.touch #tool-others { display: none; }
+body.touch:not(.playing) #touch { display: none; }
+body.touch #bar { pointer-events: none; } /* (the orbs are not buttons here: a tap there walks) */
+body.touch .orb { width: 52px; height: 52px; border-width: 3px; }
+body.touch .orb .glyph { font-size: 17px; }
+body.touch .orb .num { font-size: 11px; bottom: 5px; }
+body.touch #bar-row { gap: 6px; padding: 4px 8px; }
+body.touch #prompt { pointer-events: auto; font-size: 17px; }
+body.touch #menu-controls kbd { font: inherit; font-size: 13px; line-height: 20px; }
+body.touch #area-name { left: calc(var(--sl) + 10px); top: calc(var(--st) + 8px); font-size: 15px; padding: 5px 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.touch #minimap { right: calc(var(--sr) + 10px); top: calc(var(--st) + 8px); width: 90px; height: 90px; border-width: 2px; }
+body.touch #necklace-badge { font-size: 18px; }
+body.touch #boss-plate { width: min(380px, 70vw); padding: 4px 10px 5px; }
+body.touch #boss-plate b { font-size: 16px; }
+body.touch #boss-plate small { font-size: 13px; }
+body.touch #combo-pop { font-size: 20px; }
+/* the place-name and boss cards fit the screen (64 px type was half a phone lying down) */
+body.touch #card { max-width: 88vw; }
+body.touch #card h2 { font-size: clamp(24px, min(7vw, 9vh), 44px); letter-spacing: 1px; }
+body.touch #card p { font-size: clamp(14px, min(4vw, 4.5vh), 19px); }
+body.touch #card .stars { font-size: clamp(26px, min(8vw, 10vh), 44px); }
+/* the panels fit the screen and scroll inside (the page itself never pans) */
+body.touch #shop, body.touch #codex, body.touch #altar { max-height: calc(100vh - 16px); max-height: calc(100dvh - var(--st) - var(--sb) - 16px); overflow: auto; overscroll-behavior: contain; touch-action: pan-y; }
+body.touch .screen { touch-action: pan-y; }
+body.touch #shop-goods, body.touch #altar-goods { grid-template-columns: repeat(2, 1fr); }
+
+/* upright: the area's name, then the bar, top-left; the minimap top-right with
+   🗺️ ☰ under it; the boss plate, toasts and the hover plate under all of
+   that (hud.relayout measures it); talk and the ✋ prompt above the thumb arc */
+@media (orientation: portrait) {
+  body.touch #area-name { max-width: calc(100vw - 168px); }
+  body.touch #stick { left: calc(var(--sl) + 14px); bottom: calc(var(--sb) + 20px); width: 104px; height: 104px; } /* (clear of 🔄 on a narrow phone) */
+  body.touch #knob { left: 27px; top: 27px; }
+  body.touch #minimap { width: 92px; height: 92px; }
+  body.touch #touch-top { right: calc(var(--sr) + 10px); top: calc(var(--st) + 108px); }
+  body.touch #necklace-badge { top: calc(var(--st) + 10px); right: calc(var(--sr) + 110px); }
+  body.touch #bar { left: calc(var(--sl) + 10px); top: calc(var(--area-bottom, 44px) + 6px); bottom: auto; transform: none; align-items: flex-start; }
+  body.touch #boss-plate { top: calc(var(--stack-bottom, 160px) + 6px); width: min(380px, calc(100vw - 20px)); }
+  body.touch #toast, body.touch #hover-plate, body.touch #escape-clock { top: calc(var(--plate-bottom, 160px) + 8px); }
+  body.touch #toast { font-size: 16px; }
+  body.touch #card { top: 60%; } /* under the hero (mid-screen), clear of the toasts and the boss plate */
+  body.touch #prompt { bottom: calc(var(--sb) + 288px); }
+  body.touch #dialog { bottom: calc(var(--sb) + 288px); font-size: 18px; padding: 14px 18px 24px; }
+  body.touch #combo-pop { bottom: calc(var(--sb) + 340px); }
+}
+/* lying down: the bar sits low beside the stick's resting spot, clear of the
+   arc even on a narrow phone; 🗺️ ☰ left of the minimap, the necklace under the name */
+@media (orientation: landscape) {
+  body.touch #area-name { top: calc(var(--st) + 6px); font-size: 14px; padding: 4px 12px; max-width: calc(50vw - min(190px, 24vw) - 20px - var(--sl)); }
+  body.touch #minimap { width: 84px; height: 84px; top: calc(var(--st) + 6px); }
+  body.touch #touch-top { right: calc(var(--sr) + 102px); top: calc(var(--st) + 6px); }
+  body.touch #necklace-badge { left: calc(var(--sl) + 10px); right: auto; top: calc(var(--st) + 42px); }
+  body.touch #stick { left: calc(var(--sl) + 16px); bottom: calc(var(--sb) + 16px); width: 110px; height: 110px; }
+  body.touch #knob { left: 30px; top: 30px; }
+  body.touch #bar { left: calc(var(--sl) + 136px); bottom: calc(var(--sb) + 6px); transform: none; transform-origin: left bottom; }
+  body.touch #boss-plate { top: calc(var(--st) + 6px); width: min(360px, 46vw); padding: 3px 10px 4px; border-width: 2px; }
+  body.touch #hover-plate, body.touch #toast { top: calc(var(--st) + 64px); font-size: 16px; }
+  body.touch.boss #toast, body.touch.boss #hover-plate, body.touch #escape-clock { top: calc(var(--boss-bottom, 76px) + 8px); }
+  body.touch #prompt { bottom: calc(var(--sb) + 112px); }
+  body.touch #dialog { bottom: 8px; width: min(600px, 62vw); font-size: 17px; line-height: 1.4; padding: 12px 18px 22px; }
+  body.touch #combo-pop { bottom: 150px; }
+  body.touch #card { top: 70%; } /* under the hero (mid-screen), clear of the boss plate and the toasts */
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  body.touch #boss-plate b { font-size: 14px; }
+  body.touch #boss-plate .bar.hp { height: 9px; margin-top: 2px; }
+  body.touch #boss-plate .bar.stun { height: 5px; }
+  body.touch #boss-plate small { font-size: 12px; margin-top: 1px; }
+}
+/* a short phone lying down (Safari's bars take the height): the arc shrinks
+   toward the corner and the minimap with it, so the arc never reaches it */
+@media (orientation: landscape) and (max-height: 360px) {
+  body.touch #touch-buttons { transform: scale(0.88); }
+  body.touch #minimap { width: 70px; height: 70px; }
+  body.touch #touch-top { right: calc(var(--sr) + 88px); }
+  body.touch #touch-top button { width: 42px; height: 42px; }
+}
+@media (orientation: landscape) and (max-height: 310px) {
+  body.touch #touch-buttons { transform: scale(0.78); }
+  body.touch #minimap { width: 58px; height: 58px; }
+  body.touch #touch-top { right: calc(var(--sr) + 76px); }
+}
+@media (orientation: landscape) and (max-width: 620px) {
+  body.touch #bar { transform: scale(0.85); }
+}

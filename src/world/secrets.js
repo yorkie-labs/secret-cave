@@ -79,7 +79,7 @@ export function createSecrets(G, def, { gates, after }) {
       const d = Math.hypot(pp.x - g.at.x, pp.z - g.at.z);
       if (Math.abs(pp.y - g.y) > 4) continue;
       if (!g.revealed) {
-        if (d < HINT_NEAR && !hinted.has(s.id)) { hinted.add(s.id); G.toast('🐾 이 바위 벽에서 신기한 냄새가 나요… 1번(냄새 맡기)을 눌러 볼까요?', 3400); G.emit('secretHint', s.id); }
+        if (d < HINT_NEAR && !hinted.has(s.id)) { hinted.add(s.id); G.toast('🐾 이 바위 벽에서 신기한 냄새가 나요… [[1번(냄새 맡기)을|👃 냄새 버튼을]] 눌러 볼까요?', 3400); G.emit('secretHint', s.id); }
         continue;
       }
       if (!state.necklace || d > DOOR_NEAR) continue;

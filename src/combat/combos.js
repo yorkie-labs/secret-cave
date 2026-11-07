@@ -15,7 +15,7 @@ export const COMBOS = [
   { id: 'hammerArmor', items: ['hammer', 'armor'], icon: '🔨🦺', name: '튼튼 망치', text: '망치를 맞히면 파란 하트 반 칸 (싸움마다 한 번)', heal: 0.5 },
   { id: 'maskVine', items: ['mask', 'vine'], icon: '🎭🌿', name: '몰래 덩굴', text: '탈을 쓴 채 덩굴을 던져도 탈이 안 벗겨져요' },
   { id: 'shieldCounter', items: ['shield', 'hammer'], icon: '🛡️🔨', name: '막고 쾅!', text: '막은 뒤 1초 안에 망치를 휘두르면 2배', window: 1, mult: 2 },
-  { id: 'herbHerb', items: ['herb', 'herb'], icon: '🌱🌱', name: '약초 두 개', text: '약초를 먹는 동안 4를 한 번 더: 약초 2개로 하트 5칸', heal: 5 },
+  { id: 'herbHerb', items: ['herb', 'herb'], icon: '🌱🌱', name: '약초 두 개', text: '약초를 먹는 동안 [[4를|🌱 약초 버튼을]] 한 번 더: 약초 2개로 하트 5칸', heal: 5 },
 ];
 export const COMBO = Object.fromEntries(COMBOS.map((c) => [c.id, c]));
 

@@ -2,7 +2,7 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Secret Cave · 비밀 동굴</title>
     <meta name="description" content="Secret Cave — 용감한 몰티즈가 신비한 동굴에서 아이템을 모아 싸우고, 크리스탈 킹을 물리치고 탈출하는 3D 액션 로그라이크." />
     <meta name="theme-color" content="#1b2226" />
@@ -148,17 +148,24 @@
       </div>
     </div>
 
+    <!-- touch screens (ui/touch.js, GDD §4.2): the joystick floats under the
+         left thumb; the right thumb has a big hammer in the corner, an arc of
+         four around it (tool, roll, shield, herb) and three further out
+         (switch tool, sniff, use); the map and the menu sit by the minimap.
+         .cd is a button's cooldown sweep -->
     <div id="touch" class="hidden">
       <div id="stick"><div id="knob"></div></div>
       <div id="touch-buttons">
-        <button data-key="Hammer" title="망치"><span class="ico">🔨</span><small class="lbl">망치</small></button>
-        <button data-key="Tool" title="도구"><span class="ico">💧</span><small class="lbl">도구</small></button>
-        <button data-key="KeyQ" title="도구 바꾸기"><span class="ico">🔄</span><small class="lbl">바꾸기</small></button>
-        <button data-key="Digit2" title="구르기"><span class="ico">🌀</span><small class="lbl">구르기</small></button>
-        <button data-key="Digit3" title="방패"><span class="ico">🛡️</span><small class="lbl">방패</small></button>
-        <button data-key="Digit4" title="약초"><span class="ico">🌱</span><small class="lbl">약초</small></button>
-        <button data-key="Digit1" title="냄새"><span class="ico">👃</span><small class="lbl">냄새</small></button>
-        <button data-key="Space" title="사용"><span class="ico">✋</span><small class="lbl">사용</small></button>
+        <button data-key="Hammer" title="망치"><span class="ico">🔨</span><small class="lbl">망치</small><i class="cd"></i></button>
+        <button data-key="Tool" title="도구"><span class="ico">💧</span><small class="lbl">도구</small><i class="cd"></i></button>
+        <button data-key="Digit2" title="구르기"><span class="ico">🌀</span><small class="lbl">구르기</small><i class="cd"></i></button>
+        <button data-key="Digit3" title="방패 (누르고 있기)"><span class="ico">🛡️</span><small class="lbl">방패</small></button>
+        <button data-key="Digit4" title="약초"><span class="ico">🌱</span><small class="lbl">약초</small><i class="cd"></i></button>
+        <button data-key="KeyQ" title="도구 바꾸기" class="small"><span class="ico">🔄</span><small class="lbl">바꾸기</small></button>
+        <button data-key="Digit1" title="냄새" class="small"><span class="ico">👃</span><small class="lbl">냄새</small><i class="cd"></i></button>
+        <button data-key="Space" title="사용" class="small dim"><span class="ico">✋</span><small class="lbl">사용</small></button>
+      </div>
+      <div id="touch-top">
         <button data-key="Tab" title="지도"><span class="ico">🗺️</span><small class="lbl">지도</small></button>
         <button data-key="Escape" title="메뉴"><span class="ico">☰</span><small class="lbl">메뉴</small></button>
       </div>
